@@ -4,11 +4,6 @@ This file looks at the manifests and finds which hosts are inside the permission
 import os, json, re, csv
 import pandas as pd
 
-print('running')
-
-screen_reader = 'screen_reader_unzipped'
-accessibility = 'accessibility_unzipped'
-
 Perms = ['accessibilityFeatures.modify','accessibilityFeatures.read','bookmarks',
          'clipboardRead','clipboardWrite','contentSettings','debugger','declarativeNetRequest','declarativeNetRequestFeedback','desktopCapture',
          'downloads','favicon','geolocation','history','identity.email','management','nativeMessaging','notifications','pageCapture','privacy',
@@ -18,79 +13,95 @@ Perms = ['accessibilityFeatures.modify','accessibilityFeatures.read','bookmarks'
          'cookies','commands','gcm','chrome://favicon/','fileBrowserHandler','sidePanel','system.display','fontSettings',
          'None']
 
-screen_reader_host = {}
-accessibility_host = {}
+def sort_dic(dic):
+    return dict(sorted(dic.items(), key=lambda item: item[1], reverse=True))
 
-with open('screen_reader.csv', newline='') as csvfile:
-    reader = csv.reader(csvfile)
-    rows = list(reader)
-    for row in rows:
-        filename = row[7]
-        try:
-            with open( os.path.join(screen_reader, str(filename.split('.')[0]), 'manifest.json')) as f:
-                data = json.load(f)
-                try:
-                    permissions = data["permissions"]
-                except:
-                    permissions = ['None']
-            
-            for p in permissions:
-                if p not in Perms:
-                    if p in screen_reader_host:
-                        screen_reader_host[p] += 1
-                    else:
-                        screen_reader_host[p] = 1
+def count_hosts(csv_file, dir):
+    host = {}
+    with open(csv_file, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        rows = list(reader)
+        for row in rows:
+            filename = row[7]
+            try:
+                with open( os.path.join(dir, str(filename.split('.')[0]), 'manifest.json')) as f:
+                    data = json.load(f)
+                    try:
+                        permissions = data["permissions"]
+                    except:
+                        permissions = ['None']
 
+                    try:
+                        host_permissions = data["host_permissions"]
+                    except:
+                        host_permissions = ['None']
+                
+                for p in permissions:
+                    if p not in Perms and p != 'None':
+                        if p in host:
+                            host[p] += 1
+                        else:
+                            host[p] = 1
 
-        except:
-            errors_file = open('Error Hosts.txt', 'a', encoding='utf-8')
-            errors_file.write(filename+'\n')
-            errors_file.close()
+                for h in host_permissions:
+                    if h != 'None':
+                        if h in host:
+                            host[h] += 1
+                        else:
+                            host[h] = 1
+            except:
+                errors_file = open('Error Hosts.txt', 'a', encoding='utf-8')
+                errors_file.write(filename+'\n')
+                errors_file.close()
+    return host
 
-with open('accessibility.csv', newline='') as csvfile:
-    reader = csv.reader(csvfile)
-    rows = list(reader)
-    for row in rows:
-        filename = row[7]
-        try:
-            with open( os.path.join(accessibility, str(filename.split('.')[0]), 'manifest.json')) as f:
-                data = json.load(f)
-                try:
-                    permissions = data["permissions"]
-                except:
-                    permissions = ['None']
-            
-            for p in permissions:
-                if p not in Perms:
-                    if p in accessibility_host:
-                        accessibility_host[p] += 1
-                    else:
-                        accessibility_host[p] = 1
+def combine_dic(one, two):
+    total = {}
+    for key in one:
+        if key in total:
+            total[key] += one[key]
+        else:
+            total[key] = one[key]
+    
+    for key in two:
+        if key in total:
+            total[key] += two[key]
+        else:
+            total[key] = two[key]
+    return total
 
+def make_table(screen_reader, accessibility):
+    total = sort_dic(combine_dic(screen_reader, accessibility))
+        
+    table = """
+    \\begin{table}[h]
+    \centering
+    \\begin{tabular}{lccc} \\toprule
+        Permission & Accessibility & Screen Reader & Total \\\\ \midrule
+    """
+    for key, value in total.items():
+        if value == 2:
+            break
+        
+        #Make sure that they key is in both dics
+        if key not in accessibility:
+            accessibility[key] = 0
+        if key not in screen_reader:
+            screen_reader[key] = 0
 
-        except:
-            errors_file = open('Error Hosts.txt', 'a', encoding='utf-8')
-            errors_file.write(filename+'\n')
-            errors_file.close()
+        table += """%s & %s & %s & %s\\\\\n""" %(key, accessibility[key], screen_reader[key], value)
+    
+    table += """
+    \\bottomrule
+    \end{tabular}
+    \caption{List of hosts in the permissions within the manifest file with 3 or more extentions}
+    \label{tab:hosts}
+    \end{table}
+    """
 
-#print(dict(sorted(screen_reader_host.items(), key=lambda item: item[1])))
-#print(dict(sorted(accessibility_host.items(), key=lambda item: item[1])))
+    return table
 
-df = pd.DataFrame([screen_reader_host, accessibility_host])
-#df.sort_values(inplace=True)
+screen_reader = count_hosts("screen_reader.csv", 'screen_reader_unzipped')
+accessibility = count_hosts("accessibility.csv", "accessibility_unzipped")
 
-print(df)
-
-df_transposed = df.transpose()
-df_transposed.sort_values(by=0,inplace=True)
-print(df_transposed)
-
-df_transposed.to_csv('Hosts_in_permissions.csv', index=True, header=True)
-
-"""for row in df_transposed:
-    print(row)
-
-hosts_file = open('Hosts in permissions.txt', 'a', encoding='utf-8')
-hosts_file.write(df_transposed+'\n')
-hosts_file.close()
-"""
+print(make_table(screen_reader, accessibility))
