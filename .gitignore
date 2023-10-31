@@ -167,3 +167,4 @@ html_files/
 tracker_lists/
 unzipped/
 *.pgf
+Error *.txt
