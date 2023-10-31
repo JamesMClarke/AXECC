@@ -13,9 +13,10 @@ import re
 
 
 rootdir=os.getcwd()
+url_dir = os.path.join(rootdir+"extension_urls")
 
 
-extension_list = open('screen_reader_search.txt', 'r', encoding='utf-8') #,encoding="utf8"
+extension_list = open(os.path.join(url_dir,'screen_reader.txt'), 'r', encoding='utf-8') #,encoding="utf8"
 extension_urls = extension_list.readlines()
 # you may also want to remove whitespace characters like `\n` at the end of each line
 extension_urls = [x.strip() for x in extension_urls]
