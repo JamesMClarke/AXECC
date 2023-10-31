@@ -165,10 +165,10 @@ cython_debug/
 #Project specific
 crx_files/
 diffs/
-extension_urls/
 html_files/
 tracker_lists/
 preprocessing/
 unzipped/
 *.pgf
 Error *.txt
+Error *.csv
