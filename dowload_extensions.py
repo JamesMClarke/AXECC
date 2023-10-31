@@ -1,12 +1,6 @@
-# The goal: 
-# 1) download all extensions recorded in the list file
-# 2) record statistical information for each extension in excel
-# 3) install the extension in Chrome
-# 4) browses to DOMtegrity file and initiates the ensuring process
-# 5) records the browser log information
-
-# Ehsan Toreini - May 2017
-
+"""
+Downloads extensions and saves info about them based on a txt file containing urls.
+"""
 
 import time
 import os
