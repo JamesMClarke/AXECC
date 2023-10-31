@@ -160,7 +160,10 @@ cython_debug/
 #.idea/
 
 #Project specific
-accessibility_crx_files/
-accessibility_unzipped/
-screen_reader_crx_files/
-screen_reader_unzipped/
+crx_files/
+diffs/
+extension_urls/
+html_files/
+tracker_lists/
+unzipped/
+*.pgf
