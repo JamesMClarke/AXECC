@@ -171,4 +171,4 @@ preprocessing/
 unzipped/
 *.pgf
 Error *.txt
-Error *.csv
+*.csv
