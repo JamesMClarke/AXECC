@@ -78,6 +78,5 @@ elif no_rows > files_in_dir:
     print("%s files have been unzipped" % files_in_dir)
 else:
     print("Finished unzipping sucessfully")
-#TODO: Add check that all files have been unzipped
 
 #TODO: Need to apply obfuscation and minification
