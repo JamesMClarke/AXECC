@@ -24,11 +24,14 @@ create_directory(os.path.join(current_dir,"crx_files"))
 parser = argparse.ArgumentParser("Download extenions")
 parser.add_argument("urls", help="Input the name of the txt containing the urls.", type=str)
 args = parser.parse_args()
-urls_name = args.urls
+urls = args.urls
+
+urls_name = os.path.basename(urls).split(".")[0]
+print(urls_name)
 
 
 #Check if csv file exists
-url_file = os.path.join(current_dir,"extension_urls",urls_name+".txt")
+url_file = os.path.join(current_dir,urls)
 if(os.path.isfile(url_file)):
     print("File %s exists, starting to download" %(urls_name))
 else:
@@ -73,13 +76,6 @@ with tqdm(total=len(extension_urls)) as pbar:
                 time.sleep(3) # Let the user actually see something!
                 #try:
                 extension_name = driver.find_element(by=By.CLASS_NAME, value='e-f-w').text
-                
-                """except:
-                extension_name = "Not Mentioned"
-                #Make it so it errors out if it is not mentioned
-                errors_file = open('Error URL.txt', 'a', encoding='utf-8')
-                errors_file.write(ext+' -Getting name\n')
-                errors_file.close()""" 
 
                 try:
                     extension_producer =  driver.find_element(by=By.CLASS_NAME, value='e-f-bb-K').find_element(by=By.CLASS_NAME, value='e-f-y').text
@@ -133,8 +129,6 @@ with tqdm(total=len(extension_urls)) as pbar:
                     errors_file.close()
                     #driver.get('http://chrome-extension-downloader.com/')
 
-                
-
                 #If attempt works, then break out of loop
                 break
             except Exception as e:
@@ -146,8 +140,7 @@ with tqdm(total=len(extension_urls)) as pbar:
                     errors_file.close()
                     raise  # Re-raise the last exception
                 
-        
-        list_file.write(re.sub('[<>:"/\|?*,]',' ',extension_name) + ',' + ext + ',' + extension_producer + ',' + extension_category + ',' + extension_population + ',' + extension_ratings + ',' + extension_no_people_rated + ',' + file_name+ '\n')
+        list_file.write(re.sub('[<>:"/\|?*,]',' ',extension_name) + ',' + ext + ',' + re.sub('[<>:"/\|?*,]',' ',extension_producer) + ',' + extension_category + ',' + extension_population + ',' + extension_ratings + ',' + extension_no_people_rated + ',' + file_name+ '\n')
         list_file.close()
         #time.sleep(2)
         pbar.update(1)
