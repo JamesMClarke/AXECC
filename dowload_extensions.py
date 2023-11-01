@@ -105,30 +105,6 @@ with tqdm(total=len(extension_urls)) as pbar:
                 extension_no_people_rated = driver.find_element(By.XPATH, "//meta[@itemprop='ratingCount']").get_attribute("content")
                 #except:
                 #    extension_no_people_rated = "Not Mentioned"
-                
-                str2=ext.split('/')
-                n = len(str2)
-                url = "https://clients2.google.com/service/update2/crx?response=redirect&os=linux&arch=x64&os_arch=x86_64&nacl_arch=x86-64&prod=chromium&prodchannel=unknown&prodversion=91.0.4442.4&lang=en-US&acceptformat=crx2,crx3&x=id%3D"+ str2[n-1] + "%26installsource%3Dondemand%26uc"
-
-                try:
-                    extension = '.crx'
-                    #Checks if the file already exists, if it does creates a versions with number at the end
-                    if os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx"):
-                        i = 1
-                        while os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx"):
-                            i += 1
-                        
-                        urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx")
-                        file_name  = re.sub('[<>:"/\|?*,]',' ',extension_name)+'_'+str(i)+".crx"
-                    else:
-                        urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx")
-                        file_name = re.sub('[<>:"/\|?*,]',' ',extension_name)+".crx"
-                except:
-                    errors_file = open('Error URL.txt', 'a', encoding='utf-8')
-                    errors_file.write(ext+' -Downloading extension\n')
-                    errors_file.close()
-                    #driver.get('http://chrome-extension-downloader.com/')
-
                 #If attempt works, then break out of loop
                 break
             except Exception as e:
@@ -139,6 +115,29 @@ with tqdm(total=len(extension_urls)) as pbar:
                     errors_file.write(ext + " "+ str(e)+'\n')
                     errors_file.close()
                     raise  # Re-raise the last exception
+
+        str2=ext.split('/')
+        n = len(str2)
+        url = "https://clients2.google.com/service/update2/crx?response=redirect&os=linux&arch=x64&os_arch=x86_64&nacl_arch=x86-64&prod=chromium&prodchannel=unknown&prodversion=91.0.4442.4&lang=en-US&acceptformat=crx2,crx3&x=id%3D"+ str2[n-1] + "%26installsource%3Dondemand%26uc"
+        try:
+            extension = '.crx'
+            #Checks if the file already exists, if it does creates a versions with number at the end
+            if os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx"):
+                i = 1
+                while os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx"):
+                    i += 1
+                
+                urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx")
+                file_name  = re.sub('[<>:"/\|?*,]',' ',extension_name)+'_'+str(i)+".crx"
+            else:
+                urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx")
+                file_name = re.sub('[<>:"/\|?*,]',' ',extension_name)+".crx"
+        except:
+            errors_file = open('Error URL.txt', 'a', encoding='utf-8')
+            errors_file.write(ext+' -Downloading extension\n')
+            errors_file.close()
+            file_name = "error"
+            #driver.get('http://chrome-extension-downloader.com/')
                 
         list_file.write(re.sub('[<>:"/\|?*,]',' ',extension_name) + ',' + ext + ',' + re.sub('[<>:"/\|?*,]',' ',extension_producer) + ',' + extension_category + ',' + extension_population + ',' + extension_ratings + ',' + extension_no_people_rated + ',' + file_name+ '\n')
         list_file.close()
