@@ -17,10 +17,12 @@ create_directory(os.path.join(current_dir,"preprocessing"))
 parser = argparse.ArgumentParser("Preprocess extenions")
 parser.add_argument("csv", help="Input the name of the csv file to be processed.", type=str)
 args = parser.parse_args()
-csv_name = args.csv
+csv_file = args.csv
+csv_name = os.path.basename(csv_file).split(".")[0]
+
 
 #Check if csv file exists
-csv_file = os.path.join(current_dir,csv_name+".csv")
+csv_file = os.path.join(current_dir,csv_file)
 if(os.path.isfile(csv_file)):
     print("File %s exists, starting preprocessing" %(csv_name))
 else:
@@ -48,15 +50,16 @@ with open(csv_file, 'r') as csvfile:
         for row in rows:
             file = row[7]
             if(os.path.isdir(os.path.join(unzip_dir, file))):
-                print(file)
+                tqdm.write(file)
             #TODO: Add check for if file exists
             try:
                 with zipfile.ZipFile(os.path.join(crx_dir,file), 'r') as zip_ref:
                     zip_ref.extractall(os.path.join(unzip_dir,file.split('.')[0]))
-            except:
+            except Exception as e :
+                tqdm.write(file)
                 errors += 1
                 errors_file = open('Error Unzip.csv', 'a', encoding='utf-8')
-                errors_file.write(row[0]+row[1]+file+'\n')
+                errors_file.write(row[0]+row[1]+file+str(e)+'\n')
                 errors_file.close()
             pbar.update(1)
 
