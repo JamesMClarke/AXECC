@@ -121,22 +121,24 @@ with tqdm(total=no_extensions) as pbar:
             for attempt in range(5):
                 try:
                     extension = '.crx'
+                    file = re.sub('[<>:"/\|?*,.]',' ',extension_name)
                     #Checks if the file already exists, if it does creates a versions with number at the end
-                    if os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx"):
+                    if os.path.isfile(os.path.join(download_folder, file+".crx")):
                         i = 1
-                        while os.path.isfile(os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx"):
+                        while os.path.isfile(os.path.join(download_folder,file+'_'+str(i)+".crx")):
                             i += 1
                         
-                        urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+'_'+str(i)+".crx")
-                        file_name  = re.sub('[<>:"/\|?*,]',' ',extension_name)+'_'+str(i)+".crx"
+                        urllib.request.urlretrieve(url, os.path.join(download_folder,file+'_'+str(i)+".crx"))
+                        file_name  = os.path.join(file+'_'+str(i)+".crx")
                     else:
-                        urllib.request.urlretrieve(url, os.path.join(download_folder,re.sub('[<>:"/\|?*,]',' ',extension_name))+".crx")
-                        file_name = re.sub('[<>:"/\|?*,]',' ',extension_name)+".crx"
+                        urllib.request.urlretrieve(url, os.path.join(download_folder,file+".crx"))
+                        file_name = file+".crx"
                     break
-                except:
+                except Exception as e:
                     if attempt == 4:  # This is the last attempt
                         errors_file = open('Error URL.txt', 'a', encoding='utf-8')
                         errors_file.write(ext+' -Downloading extension\n')
+                        errors_file.write(str(e))
                         tqdm.write(extension_name+" couldn't be downloaded")
                         errors_file.close()
                         file_name = "error"
