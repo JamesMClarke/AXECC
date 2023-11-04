@@ -2,7 +2,6 @@
 Downloads extensions and saves info about them based on a txt file containing urls.
 TODO: Error handling for importing url files
 """
-from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -10,10 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import SessionNotCreatedException
 import urllib.request,re, argparse, time, os, sys, csv
 from tqdm import tqdm
-
-#Function to try create dir if it doesn't exist
-def create_directory(directory_path):
-    Path(directory_path).mkdir(parents=True, exist_ok=True)
+from common import *
 
 current_dir=os.getcwd()
 
@@ -28,7 +24,7 @@ parser.add_argument("-v",'--verbose', action='store_true')
 args = parser.parse_args()
 urls = args.urls
 resume = args.resume
-verbos = args.verbose
+verbose = args.verbose
 
 
 #Get file name
@@ -70,10 +66,10 @@ no_extensions = len(extension_urls)
 with tqdm(total=no_extensions) as pbar:
     for ext in extension_urls:
         if resume and ext in already_done:
-            if verbos:
+            if verbose:
                 tqdm.write("skipping %s"%(ext))
         else:
-            if verbos:
+            if verbose:
                 tqdm.write("Downloading %s "%(ext))
         
             #Try to get extension information
@@ -160,5 +156,5 @@ files_in_dir = len([d for d in os.listdir(download_folder) if os.path.isfile(os.
 if(no_extensions == files_in_dir):
     print("All extensions have been downloaded")
 else:
-    print("Some extensions have not been dowloaded")
+    print("Some extensions have not been downloaded")
     print("Check above or in Error URL for details")
