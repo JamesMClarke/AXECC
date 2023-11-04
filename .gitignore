@@ -170,6 +170,7 @@ tracker_lists/
 preprocessing/
 unzipped/
 *.pgf
-Error *.txt
+*.txt
 *.csv
+*.log
 manifest/
