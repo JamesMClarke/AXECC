@@ -161,6 +161,7 @@ cython_debug/
 
 # Mac stuff
 .DS_Store
+.vscode
 
 #Project specific
 crx_files/
