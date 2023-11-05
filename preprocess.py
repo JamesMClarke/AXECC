@@ -9,9 +9,6 @@ def create_directory(directory_path):
 
 current_dir = os.getcwd()
 
-#Create preprocessing dir
-create_directory(os.path.join(current_dir,"preprocessing"))
-
 #TODO: Add the ablity to include multiple folders
 #Take input of csv file
 parser = argparse.ArgumentParser("Preprocess extensions")
@@ -117,17 +114,17 @@ with open(csv_file, 'r') as csvfile:
 
                             for attempt in range(5):
                                     try:
-                                        command = 'js-beautify "%s" -r'%filepath
+                                        #Run js-beautify
+                                        command = 'js-beautify "'+filepath+'" -r'
                                         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
                                         if verbose:
                                             pbar.write(result.stdout)
-                                            
                                     except Exception as e:
                                         if attempt == 4:  # This is the last attempt
                                             tqdm.write(filepath+" couldn't be saved")
-                                            errors_file = open('Error URL.txt', 'a', encoding='utf-8')
+                                            errors_file = open('Error Processing.txt', 'a', encoding='utf-8')
                                             errors_file.write(filepath + " "+ str(e)+'\n')
                                             errors_file.close()
-                                            raise  # Re-raise the last exception
+                                            #raise  # Re-raise the last exception
                             
             pbar.update(1)
