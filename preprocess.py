@@ -32,7 +32,7 @@ else:
     sys.exit()
 
 #Create folder for files to be unzipped into
-unzip_dir = os.path.join(current_dir,"preprocessing",csv_name)
+unzip_dir = os.path.join(current_dir,"preprocessed",csv_name)
 create_directory(unzip_dir)
 print("Unzipping all crx files into folder: %s" %(unzip_dir))
 
