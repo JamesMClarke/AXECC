@@ -168,7 +168,7 @@ crx_files/
 diffs/
 html_files/
 tracker_lists/
-preprocessing/
+preprocessed/
 unzipped/
 *.pgf
 *.txt
