@@ -33,7 +33,7 @@ else:
     print("File %s doesn't exists, stopping" %(csv_file))
     sys.exit()
 
-dir = os.path.join(current_dir,"preprocessing",csv_name+"_unzipped")
+dir = os.path.join(current_dir,"preprocessed",csv_name)
 
 #Create output dirs
 create_directory(os.path.join(current_dir,"manifest"))

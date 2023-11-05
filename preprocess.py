@@ -1,5 +1,5 @@
 from pathlib import Path
-import os, argparse, sys, csv, zipfile, jsbeautifier, cssbeautifier, _thread
+import os, argparse, sys, csv, zipfile, jsbeautifier, cssbeautifier, _thread, subprocess
 from tqdm import tqdm
 from time import sleep
 
@@ -32,7 +32,7 @@ else:
     sys.exit()
 
 #Create folder for files to be unzipped into
-unzip_dir = os.path.join(current_dir,"preprocessing",csv_name+"_unzipped")
+unzip_dir = os.path.join(current_dir,"preprocessing",csv_name)
 create_directory(unzip_dir)
 print("Unzipping all crx files into folder: %s" %(unzip_dir))
 
@@ -94,10 +94,6 @@ else:
 
 print("Trying to Deobfuscate and de-minify")
 
-#Create dir for de-obfuscation and de-minification
-de_dir = os.path.join(current_dir,"preprocessing",csv_name+"_de")
-create_directory(de_dir)
-
 with open(csv_file, 'r') as csvfile:
     with tqdm(total=no_rows) as pbar:
         for row in rows:
@@ -108,10 +104,6 @@ with open(csv_file, 'r') as csvfile:
 
                 #Set location of uzipped folder
                 unzipped_ext = os.path.join(unzip_dir,file_name)
-
-                #Set output location and create folder
-                output_dir = os.path.join(de_dir, file_name)
-                create_directory(output_dir)
 
                 #For all files,including sub dirs, in the unzipped folder
                 for dirpath, dirnames, filenames in os.walk(unzipped_ext):
@@ -125,31 +117,10 @@ with open(csv_file, 'r') as csvfile:
 
                             for attempt in range(5):
                                     try:
-                                        try:
-                                            css = cssbeautifier.beautify_file(filepath)
-                                            res = jsbeautifier.beautify(css)
-                                        except:
-                                            res = jsbeautifier.beautify_file(filepath)
-                                        
-                                        #Check if file already exists
-                                        if not os.path.isfile(os.path.join(output_dir, filename)):
-                                            #Write output to file in file_de, in a folder called what the extension is called
-                                            with open(os.path.join(output_dir, filename), 'w') as f:
-                                                # Write to the file
-                                                f.write(res)
-                                        else:
-                                            i = 1
-                                            without_ext, ext = os.path.splitext(filename)
-                                            if verbose:
-                                                tqdm.write("File %s %s already exists, creating new file"%(without_ext,ext))
-
-                                            while os.path.isfile(os.path.join(output_dir,without_ext+'_'+str(i)+ext)):
-                                                i += 1
-                                            
-                                            with open(os.path.join(output_dir,without_ext+'_'+str(i)+ext), 'w') as f:
-                                                # Write to the file
-                                                f.write(res)
-                                            break
+                                        command = 'js-beautify "%s" -r'%filepath
+                                        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+                                        if verbose:
+                                            pbar.write(result.stdout)
                                             
                                     except Exception as e:
                                         if attempt == 4:  # This is the last attempt
@@ -158,6 +129,5 @@ with open(csv_file, 'r') as csvfile:
                                             errors_file.write(filepath + " "+ str(e)+'\n')
                                             errors_file.close()
                                             raise  # Re-raise the last exception
-
                             
             pbar.update(1)

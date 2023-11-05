@@ -10,7 +10,7 @@ Next, we need to download the crx files for each extension. While doing this, th
 
 ## 3. Preprocessing
 After this, we need to process the crx files ready for analysis. We start by extracting them, which takes them from crx to normal folders. After this we try to
-deobfuscate and beautify where possible using JS Beautify. To run `python3 preprocess.py <file.csv>`.  See `python 3 download_extension.py -h` for full details.
+deobfuscate and beautify where possible using JS Beautify. To run `python3 preprocess.py <file.csv>`.  See `python 3 download_extension.py -h` for full details. This also requires [js-beautify](https://www.npmjs.com/package/js-beautify) to be installed globally.
 
 ## 4. Get info from manifest
 We then get permissions, manifest version and hosts and output them into two csv files. Use `python3 get_manifest.py <file.csv>` to run this.
