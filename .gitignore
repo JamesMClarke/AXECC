@@ -175,3 +175,5 @@ Error *.txt
 *.csv
 *.log
 manifest/
+ASTs/
+node_modules/
