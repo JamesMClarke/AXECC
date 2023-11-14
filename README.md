@@ -7,7 +7,7 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 ### Pre-requisites
 * NPM
     * [js-beautify](https://www.npmjs.com/package/js-beautify) installed globally
-    * [esprima](https://github.com/Kronuz/esprima-python) 
+    * [esprima](https://github.com/jquery/esprima) 
 
 Install requirements
 
