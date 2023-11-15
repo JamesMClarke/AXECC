@@ -77,7 +77,8 @@ with open(csv_file, 'r') as file:
         
         #Gets the code of the website and compare that against a baseline
         html = driver.page_source
-        with open(os.path.join(outfile, extension+'.html'), 'w') as outfile:
+
+        with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
             outfile.write(html)
         driver.quit()
         time.sleep(5)
