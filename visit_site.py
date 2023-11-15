@@ -25,7 +25,6 @@ verbose = args.verbose
 
 
 current_dir = os.getcwd()
-html_dir = 'html_files'
 
 csv_name = os.path.basename(csv_file).split(".")[0]
 
@@ -38,6 +37,8 @@ else:
 
 
 current_dir = os.getcwd()
+output_dir = os.path.join(current_dir, "html", csv_name)
+create_directory(output_dir)
 
 try:
     driver = webdriver.Chrome()
@@ -48,8 +49,9 @@ try:
 except:
     logging.error("Selenium or web server not running")
 
-"""with open(os.path.join(html_dir, 'baseline.html'), 'w') as outfile:
-    outfile.write(baseline)"""
+with open(os.path.join(output_dir, 'baseline.html'), 'w') as outfile:
+    outfile.write(baseline)
+
 with open(csv_file, 'r') as file:
     reader = csv.reader(file)
     for row in reader:
@@ -75,7 +77,12 @@ with open(csv_file, 'r') as file:
         
         #Gets the code of the website and compare that against a baseline
         html = driver.page_source
-        #with open(os.path.join(html_dir, extension+'.html'), 'w') as outfile:
-        #    outfile.write(html)
+        with open(os.path.join(outfile, extension+'.html'), 'w') as outfile:
+            outfile.write(html)
         driver.quit()
         time.sleep(5)
+
+sql = os.path.join(current_dir, "network")
+create_directory(sql)
+os.rename(os.path.join(current_dir,'temp.sqlite'), os.path.join(sql, csv_name+'.sqlite'))
+

@@ -180,3 +180,5 @@ node_modules/
 *.json
 temp.sqlite
 current_ext.txt
+html/
+network/
