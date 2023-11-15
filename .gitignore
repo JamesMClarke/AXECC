@@ -177,3 +177,6 @@ Error *.txt
 manifest/
 ASTs/
 node_modules/
+*.json
+temp.sqlite
+current_ext.txt

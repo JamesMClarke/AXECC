@@ -1,71 +1,81 @@
-"""
-File to add logging to getting html from each page.
-
-Need to run 'mitmproxy -s log_to_file.py' for it to log as well
-"""
-import time, os, logging, datetime
+#TODO: Add loading bar and correct printing
+import asyncio, logging, datetime, time, os, sys, threading, subprocess, argparse, csv
+  
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+import urllib.request
+from common import *
 
-import pandas as pd
-import difflib
+#Variables 
+web_page = 'http://localhost:8081/'
+extension_name = "None"
+with open("current_ext.txt", "w") as f:
+    f.write("None")
+    f.close()
+
+#Take input of csv file
+parser = argparse.ArgumentParser("Visit webpage using extension")
+parser.add_argument("csv", help="Input the name of the csv file to be processed.", type=str)
+parser.add_argument("-v",'--verbose', action='store_true')
+parser.add_argument("-s")
+args = parser.parse_args()
+csv_file = args.csv
+verbose = args.verbose
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler('/Users/jc02788/Documents/accessiblity_extensions/logfile.log')
-logger.addHandler(handler)
+current_dir = os.getcwd()
+html_dir = 'html_files'
 
-logger.info("Starting %s" %(datetime.datetime.now()))
+csv_name = os.path.basename(csv_file).split(".")[0]
 
-html_dir = 'html_files_new'
+#Check if csv file exists
+csv_file = os.path.join(current_dir,csv_file)
+if(os.path.isfile(csv_file)):
+    logging.info("File %s exists, starting to visit site with extension enabled" %(csv_name))
+else:
+    logging.error("File %s doesn't exists, stopping" %(csv_file))
 
-df = pd.read_csv('all_popular.csv')
-extensions = df['File']
-extensions = extensions[:-1]
 
-accessibility = 'accessibility_crx_files'
-screen_reader = 'screen_reader_crx_files'
 current_dir = os.getcwd()
 
-driver = webdriver.Chrome()
-driver.get('http://localhost/')
-baseline = driver.page_source
-driver.quit()
-with open(os.path.join(html_dir, 'baseline.html'), 'w') as outfile:
-    outfile.write(baseline)
+try:
+    driver = webdriver.Chrome()
+    driver.get(web_page)
+    baseline = driver.page_source
+    driver.quit()
+    logging.info("Selenium and local server working")
+except:
+    logging.error("Selenium or web server not running")
 
-for extension in extensions:
-    
-    try:
-        logger.info(extension)
-        
+"""with open(os.path.join(html_dir, 'baseline.html'), 'w') as outfile:
+    outfile.write(baseline)"""
+with open(csv_file, 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        extension = row[7]
+        extension_name = extension.split('.')[0]
+        print(extension_name)
+        with open("current_ext.txt", "w") as f:
+            f.write(extension_name)
+            f.close()
+
         #Find the location of CRX file and then load it
         options = webdriver.ChromeOptions()
-        if os.path.isfile(os.path.join(current_dir, accessibility, extension)):
-            options.add_extension(os.path.join(accessibility, extension))
-        elif os.path.isfile(os.path.join(current_dir, screen_reader, extension)):
-            options.add_extension(os.path.join(screen_reader, extension))
+        ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
+        if os.path.isfile(ext_path):
+            options.add_extension(ext_path)
         else:
-            logger.info('File not found')
+            logging.error(ext_path)
+            logging.error('File not found')
 
         driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
-        driver.get('http://localhost/')
+        driver.get(web_page)
         time.sleep(5) # Let the user actually see something!
         
-
         #Gets the code of the website and compare that against a baseline
         html = driver.page_source
         #with open(os.path.join(html_dir, extension+'.html'), 'w') as outfile:
         #    outfile.write(html)
         driver.quit()
         time.sleep(5)
-
-    except KeyboardInterrupt:
-        raise
-    except Exception as error:
-        logger.error("An error occurred")
-        logger.error(error)
-        
-       
