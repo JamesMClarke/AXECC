@@ -94,9 +94,9 @@ with open(csv_file, 'r') as file:
                 driver.quit()
             except Exception as e:
                 #TODO: Handle file not found
-                tqdm.write(str(e))
                 tqdm.write(ext_path)
                 tqdm.write('File not found')
+                tqdm.write(str(e))
                 raise
 
             
