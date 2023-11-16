@@ -11,7 +11,7 @@ current_dir = os.getcwd()
 
 #Start prerequisites 
 web_server.start_server()
-Popen(['mitmdump', '-s', os.path.join(current_dir,'log_trackers.py')])
+Popen(['mitmdump', '-q', '-s', os.path.join(current_dir,'log_trackers.py')])
 
 #Variables 
 web_page = 'http://localhost:8081/'

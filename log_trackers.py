@@ -50,8 +50,6 @@ async def request(flow):
     with open("current_ext.txt", "r") as f:
         ext = f.read()
         f.close()
-    
-    logging.info(f"{ext}: {flow.request.host}{flow.request.path}")
 
     conn = create_connection(db_file)
     create_tracker(conn, (ext, flow.request.host+flow.request.path))
