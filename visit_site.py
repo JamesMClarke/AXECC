@@ -43,7 +43,9 @@ output_dir = os.path.join(current_dir, "html", csv_name)
 create_directory(output_dir)
 
 try:
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument('ignore-certificate-errors')
+    driver = webdriver.Chrome(chrome_options=options)
     driver.get(web_page)
     baseline = driver.page_source
     driver.quit()
