@@ -1,4 +1,3 @@
-#TODO: Add multiple try's
 import logging, time, os, argparse, csv
 from tqdm import tqdm
 from selenium import webdriver
@@ -6,8 +5,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from common import *
 import web_server
+from subprocess import Popen
 
+current_dir = os.getcwd()
+
+#Start prerequisites 
 web_server.start_server()
+Popen(['mitmdump', '-s', os.path.join(current_dir,'log_trackers.py')])
 
 #Variables 
 web_page = 'http://localhost:8081/'
@@ -26,9 +30,6 @@ args = parser.parse_args()
 csv_file = args.csv
 time_visit = args.time
 verbose = args.verbose
-
-
-current_dir = os.getcwd()
 
 csv_name = os.path.basename(csv_file).split(".")[0]
 
