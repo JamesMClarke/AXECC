@@ -42,16 +42,17 @@ current_dir = os.getcwd()
 output_dir = os.path.join(current_dir, "html", csv_name)
 create_directory(output_dir)
 
-try:
-    options = webdriver.ChromeOptions()
-    options.add_argument('ignore-certificate-errors')
-    driver = webdriver.Chrome(chrome_options=options)
-    driver.get(web_page)
-    baseline = driver.page_source
-    driver.quit()
-    logging.info("Selenium and local server working")
-except:
-    logging.error("Selenium or web server not running")
+#try:
+options = webdriver.ChromeOptions()
+options.add_argument('ignore-certificate-errors')
+driver = webdriver.Chrome(options=options)
+driver.get(web_page)
+baseline = driver.page_source
+driver.quit()
+logging.info("Selenium and local server working")
+"""except Exception as e:
+    logging.error(e)
+    logging.error("Selenium or web server not running")"""
 
 with open(os.path.join(output_dir, 'baseline.html'), 'w') as outfile:
     outfile.write(baseline)
@@ -73,6 +74,7 @@ with open(csv_file, 'r') as file:
 
             #Find the location of CRX file and then load it
             options = webdriver.ChromeOptions()
+            options.add_argument('ignore-certificate-errors')
             ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
             if os.path.isfile(ext_path):
                 options.add_extension(ext_path)
