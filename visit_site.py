@@ -1,6 +1,4 @@
-#TODO: Add loading bar and correct printing
 #TODO: Add multiple try's
-#TODO: See if I can look at apis being used
 import logging, time, os, argparse, csv
 from tqdm import tqdm
 from selenium import webdriver
@@ -71,7 +69,6 @@ with open(csv_file, 'r') as file:
                 f.write(extension_name)
                 f.close()
 
-<<<<<<< HEAD
             #Find the location of CRX file and then load it
             options = webdriver.ChromeOptions()
             ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
@@ -93,19 +90,6 @@ with open(csv_file, 'r') as file:
             time.sleep(5)
 
             pbar.update(1)
-=======
-        driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
-        driver.get(web_page)
-        time.sleep(5) # Let the user actually see something!
-        
-        #Gets the code of the website and compare that against a baseline
-        html = driver.page_source
-
-        with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
-            outfile.write(html)
-        driver.quit()
-        time.sleep(5)
->>>>>>> refs/remotes/origin/main
 
 sql = os.path.join(current_dir, "network")
 create_directory(sql)
