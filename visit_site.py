@@ -31,6 +31,8 @@ csv_file = args.csv
 time_visit = args.time
 verbose = args.verbose
 
+time.sleep(5)
+
 csv_name = os.path.basename(csv_file).split(".")[0]
 
 #Check if csv file exists
