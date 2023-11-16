@@ -1,11 +1,13 @@
-#TODO: Add loading bar and correct printing
-import asyncio, logging, datetime, time, os, sys, threading, subprocess, argparse, csv
-  
+#TODO: Add multiple try's
+import logging, time, os, argparse, csv
+from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-import urllib.request
 from common import *
+import web_server
+
+web_server.start_server()
 
 #Variables 
 web_page = 'http://localhost:8081/'
@@ -54,36 +56,44 @@ with open(os.path.join(output_dir, 'baseline.html'), 'w') as outfile:
 
 with open(csv_file, 'r') as file:
     reader = csv.reader(file)
-    for row in reader:
-        extension = row[7]
-        extension_name = extension.split('.')[0]
-        print(extension_name)
-        with open("current_ext.txt", "w") as f:
-            f.write(extension_name)
-            f.close()
+    rows = list(reader)
+    no_rows = len(rows)
+    with tqdm(total=no_rows) as pbar:
+        for row in rows:
+            extension = row[7]
+            extension_name = extension.split('.')[0]
+            if verbose:
+                tqdm.write(extension_name)
 
-        #Find the location of CRX file and then load it
-        options = webdriver.ChromeOptions()
-        ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
-        if os.path.isfile(ext_path):
-            options.add_extension(ext_path)
-        else:
-            logging.error(ext_path)
-            logging.error('File not found')
+            with open("current_ext.txt", "w") as f:
+                f.write(extension_name)
+                f.close()
 
-        driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
-        driver.get(web_page)
-        time.sleep(5) # Let the user actually see something!
-        
-        #Gets the code of the website and compare that against a baseline
-        html = driver.page_source
+            #Find the location of CRX file and then load it
+            options = webdriver.ChromeOptions()
+            ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
+            if os.path.isfile(ext_path):
+                options.add_extension(ext_path)
+            else:
+                tqdm.write(ext_path)
+                tqdm.write('File not found')
 
-        with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
-            outfile.write(html)
-        driver.quit()
-        time.sleep(5)
+            driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
+            driver.get(web_page)
+            time.sleep(5) # Let the user actually see something!
+            
+            #Gets the code of the website and compare that against a baseline
+            html = driver.page_source
+            with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
+                outfile.write(html)
+            driver.quit()
+            time.sleep(5)
+
+            pbar.update(1)
 
 sql = os.path.join(current_dir, "network")
 create_directory(sql)
 os.rename(os.path.join(current_dir,'temp.sqlite'), os.path.join(sql, csv_name+'.sqlite'))
+
+print("Finished")
 

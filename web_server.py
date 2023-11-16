@@ -15,6 +15,9 @@ def webServer():
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(bytes("<html><body><h1>Hello World</h1></body></html>", "utf-8"))
+
+        def log_message(self, format, *args):
+            return
         
     webServer = HTTPServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
@@ -25,7 +28,7 @@ def webServer():
         pass
 
     webServer.server_close()
-    print("Server stopped.")
+    #print("Server stopped.")
 
 def start_server():
     thread = Thread(target=webServer)

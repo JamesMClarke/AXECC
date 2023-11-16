@@ -119,6 +119,7 @@ with open(csv_file, 'r') as csvfile:
                                         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
                                         if verbose:
                                             pbar.write(result.stdout)
+                                        break
                                     except Exception as e:
                                         if attempt == 4:  # This is the last attempt
                                             tqdm.write(filepath+" couldn't be saved")
