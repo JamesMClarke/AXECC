@@ -19,10 +19,12 @@ with open("current_ext.txt", "w") as f:
 #Take input of csv file
 parser = argparse.ArgumentParser("Visit webpage using extension")
 parser.add_argument("csv", help="Input the name of the csv file to be processed.", type=str)
+parser.add_argument("time", help="How long to visit test site with each extension", type=int)
 parser.add_argument("-v",'--verbose', action='store_true')
 parser.add_argument("-s")
 args = parser.parse_args()
 csv_file = args.csv
+time_visit = args.time
 verbose = args.verbose
 
 
@@ -82,7 +84,7 @@ with open(csv_file, 'r') as file:
                 options.add_extension(ext_path)
                 driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
                 driver.get(web_page)
-                time.sleep(5) # Let the user actually see something!
+                time.sleep(time_visit) # Let the user actually see something!
                 
                 #Gets the code of the website and compare that against a baseline
                 html = driver.page_source
@@ -91,13 +93,13 @@ with open(csv_file, 'r') as file:
                 driver.quit()
             except Exception as e:
                 #TODO: Handle file not found
-                tqdm.write(e)
+                tqdm.write(str(e))
                 tqdm.write(ext_path)
                 tqdm.write('File not found')
                 raise
 
             
-            time.sleep(5)
+            time.sleep(1)
 
             pbar.update(1)
 
