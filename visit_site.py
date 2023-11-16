@@ -76,21 +76,27 @@ with open(csv_file, 'r') as file:
             options = webdriver.ChromeOptions()
             options.add_argument('ignore-certificate-errors')
             ext_path = os.path.join(current_dir, "crx_files",csv_name, extension)
-            if os.path.isfile(ext_path):
+            if verbose:
+                tqdm.write(f"Extension path: {ext_path}")
+            try:
                 options.add_extension(ext_path)
-            else:
+                driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
+                driver.get(web_page)
+                time.sleep(5) # Let the user actually see something!
+                
+                #Gets the code of the website and compare that against a baseline
+                html = driver.page_source
+                with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
+                    outfile.write(html)
+                driver.quit()
+            except Exception as e:
+                #TODO: Handle file not found
+                tqdm.write(e)
                 tqdm.write(ext_path)
                 tqdm.write('File not found')
+                raise
 
-            driver = webdriver.Chrome(options=options)#, desired_capabilities=capabilities, service_args=["--verbose", "--log-path=E:\\qc1.log"])  # Optional argument, if not specified will search path.
-            driver.get(web_page)
-            time.sleep(5) # Let the user actually see something!
             
-            #Gets the code of the website and compare that against a baseline
-            html = driver.page_source
-            with open(os.path.join(output_dir, extension+'.html'), 'w') as outfile:
-                outfile.write(html)
-            driver.quit()
             time.sleep(5)
 
             pbar.update(1)
