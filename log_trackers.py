@@ -4,20 +4,9 @@ Run 'mitmdump -s log_to_file.py'
 
 Need to run webserver python3 -m http.server -b 127.0.0.1 -d .
 """
-import logging, sqlite3
 from sqlite3 import Error
 from mitmproxy.script import concurrent  
 from common import *
-
-def create_connection(db_file):
-    """ create a database connection to a SQLite database """
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-    except Error as e:
-        print(e)
-    
-    return conn
 
 def create_table(conn):
     try:
@@ -25,7 +14,9 @@ def create_table(conn):
         c.execute(""" CREATE TABLE IF NOT EXISTS trackers (
                                         id integer PRIMARY KEY,
                                         extension text,
-                                        tracker_url text
+                                        tracker_url text,
+                                        is_tracker bool,
+                                        tracker_type text
                                     ); """)
     except Error as e:
         print(e)

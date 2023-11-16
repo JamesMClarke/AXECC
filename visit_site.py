@@ -1,4 +1,4 @@
-import logging, time, os, argparse, csv
+import logging, time, os, argparse, csv, sys
 from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -25,6 +25,16 @@ web_page = 'http://localhost:8081/'
 extension_name = "None"
 
 send_extension("None")
+
+db_file = ("temp.sqlite")
+conn = create_connection(db_file)
+sql = '''CREATE TABLE IF NOT EXISTS crawls (
+                                        id integer PRIMARY KEY,
+                                        extension text,
+                                        completed text
+                                    ); '''
+create_table(conn, sql)
+conn.close()
 
 #Take input of csv file and time to visit site
 parser = argparse.ArgumentParser("Visit webpage using extension")
@@ -59,10 +69,10 @@ try:
     driver.get(web_page)
     baseline = driver.page_source
     driver.quit()
-    logging.info("Selenium and local server working")
+    print("Selenium and local server working")
 except Exception as e:
-    logging.error(e)
-    logging.error("Selenium or web server not running")
+    print(e)
+    print("Selenium or web server not running")
 
 #Write baseline to file
 with open(os.path.join(output_dir, 'baseline.html'), 'w') as outfile:
@@ -77,6 +87,8 @@ with open(csv_file, 'r') as file:
         for row in rows:
             extension = row[7]
             extension_name = extension.split('.')[0]
+
+            completed = False
 
             if verbose:
                 tqdm.write(extension_name)
@@ -104,19 +116,28 @@ with open(csv_file, 'r') as file:
                     outfile.write(html)
 
                 driver.quit()
+                completed = True
             except Exception as e:
                 #TODO: Handle errors and add to sqlite
                 tqdm.write(ext_path)
                 tqdm.write('File not found')
                 tqdm.write(str(e))
+                completed = False
             
             time.sleep(5)
+
+            tqdm.write(f"{extension_name} {completed}")
+            conn = create_connection(db_file)
+            sql = ''' INSERT INTO crawls(extension, completed) VALUES (?,?)'''
+            insert_data(conn, sql,(extension_name, completed))
+            conn.close()
+
 
             pbar.update(1)
 
 sql = os.path.join(current_dir, "network")
 create_directory(sql)
 os.rename(os.path.join(current_dir,'temp.sqlite'), os.path.join(sql, csv_name+'.sqlite'))
-
 print("Finished")
+sys.exit()
 
