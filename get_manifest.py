@@ -67,20 +67,25 @@ with open(csv_file, newline='') as csvfile:
             if verbose:
                 tqdm.write("Checking %s" %str(filename))
 
-            with open(os.path.join(dir, filename, 'manifest.json')) as f:
-                data = json.load(f)
-                try:
-                    permissions = data["permissions"]
-                except:
-                    permissions = ['None']
+            try:
+                with open(os.path.join(dir, filename, 'manifest.json')) as f:
+                    data = json.load(f)
+                    try:
+                        permissions = data["permissions"]
+                    except:
+                        permissions = ['None']
 
-                try:
-                    host_permissions = data["host_permissions"]
-                except:
-                    host_permissions = ['None']
+                    try:
+                        host_permissions = data["host_permissions"]
+                    except:
+                        host_permissions = ['None']
 
-                #Get manifest version
-                manifest_version = data['manifest_version']
+                    #Get manifest version
+                    manifest_version = data['manifest_version']
+            except: 
+                permissions = ['Error']
+                host_permissions = ['Error']
+                manifest_version = 'Error'
             
             permission_list = [0 for _ in range(no_perms)]
 
