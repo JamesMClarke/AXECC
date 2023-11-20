@@ -56,3 +56,8 @@ We can run a crawl of a test site using all extensions, doing this records the H
 python3 vist_site.py <file.csv> <time>
 ```
 
+## 7. Finding trackers
+We can then search the network traffic from the crawl to find trackers. When doing this it identifies the type of tracker, and automatically downloads the latest versions of the tracker lists. 
+```bash
+python3 identify_trackers.py <file.sqlite> 
+```
