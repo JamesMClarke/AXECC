@@ -15,7 +15,7 @@ def create_table(conn):
                                         id integer PRIMARY KEY,
                                         extension text,
                                         tracker_url text,
-                                        is_tracker bool,
+                                        is_tracker text,
                                         tracker_type text
                                     ); """)
     except Error as e:

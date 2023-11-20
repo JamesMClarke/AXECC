@@ -33,3 +33,9 @@ def insert_data(conn, sql, data):
     cur = conn.cursor()
     cur.execute(sql, data)
     conn.commit()
+
+def select_all(conn, table):
+    ''' Selects all from a sqlite file and returns all rows'''
+    c = conn.cursor()
+    c.execute(f"SELECT * FROM {table}")
+    return c.fetchall()
