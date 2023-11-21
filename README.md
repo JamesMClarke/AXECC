@@ -42,6 +42,12 @@ We then get permissions, manifest version and hosts and output them into two csv
 ```bash 
 python3 get_manifest.py <file.csv> 
 ```
+### 4.1 Create tables from manifest
+Once we have gotten this info we can automatically create tables for tex files:
+```bash
+python3 create_extension_tables -f <manifest/category1> -f <manifest/category2>
+```
+This will create some tables which are separate and some which are combined, for any number of categories.
 
 ## 5. Generating ASTs
 We can then generate AST using Esprima
