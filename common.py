@@ -39,3 +39,9 @@ def select_all(conn, table):
     c = conn.cursor()
     c.execute(f"SELECT * FROM {table}")
     return c.fetchall()
+
+def select_where(conn, table, element, value):
+    '''Selects all from sqlite table where element equals value'''
+    c = conn.cursor()
+    c.execute(f"SELECT * FROM {table} WHERE {element} = {value}")
+    return c.fetchall()

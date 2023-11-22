@@ -105,7 +105,7 @@ else:
   for list in blocklists:
     print("  |_ %s" % list)
     try:
-      rule_list.append(rule(list, load_rules(list)))
+      rule_list.append(rule(list.split('/')[1].split('.')[0], load_rules(list)))
     except:
       print(f"Error loading list {list}")
 
@@ -128,7 +128,10 @@ with tqdm(total=len(rows)) as pbar:
       if rules.rules.should_block(url):
         should_block = True
         total += 1
-        category += rules.name
+        if len(category) == 0:
+          category += rules.name
+        else:
+          category += ',' + rules.name
 
     #Write results back to db
     if should_block:

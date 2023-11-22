@@ -67,3 +67,9 @@ We can then search the network traffic from the crawl to find trackers. When doi
 ```bash
 python3 identify_trackers.py <file.sqlite> 
 ```
+
+### 7.1 Making tables and graphs for trackers
+We can automatically make tables and graphs for the results, which will be outputted to the folder `tables_and_graphs`.
+```bash
+python3 graph_trackers.py <files.sqlite>
+```
