@@ -1,5 +1,20 @@
 import common, argparse, os, sys, operator
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.ticker import MaxNLocator
+import seaborn as sns
+from matplotlib.lines import Line2D
+
+matplotlib.use("pgf")
+
+plt.rcParams["figure.figsize"] = [6, 4]
+matplotlib.rcParams.update({
+    "pgf.texsystem": "pdflatex",
+    'font.family': 'Linux Libertine O',
+    'font.size': 9
+})
+plt.rcParams['figure.constrained_layout.use'] = True
 
 
 parser = argparse.ArgumentParser("Check sqlite file for trackers")
@@ -28,7 +43,8 @@ print(f"Creating summary at {summary_file}")
 headings = """\\begin{table}[h]
     \centering
     \\begin{tabular}{cccccccc} \\toprule
-        Search term & \# Extensions & Total users & Avg. \# users & Avg. rating & Avg. \# Permissions & Manifest V2 & Manifest V3\\\\ \midrule"""
+        \multirow{2}{*}{Search term} & \# & \multirow{2}{*}{Total users} & Avg. \#  & Avg.  & Avg. \#  & \multicolumn{2}{c}{Manifest} \\\\ 
+        & Extensions & &  users & rating & Permissions & V2 & V3 \\\\ \midrule"""
 
 #Create summary of permissions and info
 with open(summary_file, 'w') as f:
@@ -38,6 +54,7 @@ with open(summary_file, 'w') as f:
         file = os.path.join(file,"permissions_and_info.csv")
         csv_filepath = os.path.join(cwd, file)
         df = pd.read_csv(csv_filepath)
+        df.drop(columns=['None'], inplace=True)
         total_ext = len(df['Name'])
         df[' population'] = df[' population'].str.replace('+', '')
         df[' population'] = df[' population'].str.replace('Not Mentioned', '0')
@@ -152,3 +169,109 @@ with open(host_summary, "w") as f:
     \label{tab:host_summary}
 \end{table}
 """)
+
+#Count values in file
+permissions_counts = pd.DataFrame()
+ext_permissions = pd.DataFrame()
+for file in csv_folders:
+    file_name = file.split('/')[-1].replace("_", " ").capitalize()
+    file = os.path.join(file,"permissions_and_info.csv")
+    csv_filepath = os.path.join(cwd, file)
+    df = pd.read_csv(csv_filepath)
+    df.drop(columns=['None'], inplace=True)
+    names= df.iloc[:, 9:].keys()
+    total = df[names].sum()
+    permissions_counts[file_name] = total
+
+    #Work out the number of permissions requested per extension
+    permissions_ext = df.iloc[:, 9:]
+    permissions_ext['total'] = permissions_ext.sum(axis=1)
+    new_df = pd.DataFrame()
+    new_df['Extension'] = df['Name']
+    new_df['Number of Permissions'] = permissions_ext['total']
+    new_df['Category'] = file_name
+    new_df = new_df.sort_values(by='Number of Permissions',ascending=False)
+    ext_permissions = pd.concat([ext_permissions, new_df])
+    print(ext_permissions)
+    
+sns.set_style('whitegrid')
+sns.set_palette('colorblind')
+ax = sns.countplot(data=ext_permissions, x='Number of Permissions',palette='colorblind', hue='Category')
+#ax.set_title(title)
+plt.xlabel('Number of permissions')
+plt.ylabel("Number of extensions")
+plt.savefig(os.path.join(output_dir, 'no_permissions.pgf'), bbox_inches='tight')
+#plt.show()
+matplotlib.pyplot.close()
+
+print(f"Creating permission per app table at {os.path.join(output_dir, file_name +'_no_permissions.pgf')}")
+"""
+quit()
+permissions = pd.DataFrame()
+sns.set_style('whitegrid')
+fig, ax = plt.subplots()
+
+# Define a color palette for each file
+color_palette = sns.color_palette('colorblind', n_colors=len(csv_folders))
+legend_elements = [] 
+
+for i, (file, color) in enumerate(zip(csv_folders, color_palette)):
+    file_name = file.split('/')[-1]
+    file = os.path.join(file, "permissions_and_info.csv")
+    csv_filepath = os.path.join(cwd, file)
+    df = pd.read_csv(csv_filepath)
+    df.drop(columns=['None'], inplace=True)
+    names = df.iloc[:, 9:].keys()
+    total = df[names].sum()
+    permissions[file_name] = total
+
+    # Work out the number of permissions requested per extension
+    permissions_ext = df.iloc[:, 9:].select_dtypes(include='number')
+    permissions_ext['total'] = permissions_ext.sum(axis=1)
+    new_df = pd.DataFrame()
+    new_df['Extension'] = df['Name']
+    new_df['Number of Permissions'] = permissions_ext['total']
+    new_df = new_df.sort_values(by='Number of Permissions', ascending=True)
+
+    print(new_df)
+
+    # Use color parameter to set different colors for bars
+    countplot = sns.countplot(data=new_df, x='Number of Permissions', palette=[color], ax=ax, alpha=0.7)
+
+    # Create a custom legend element for each file
+    legend_elements.append(Line2D([0], [0], color=color, label=file_name))
+
+# Set x-axis labels and legend after the loop
+ax.set_xticks(range(len(new_df['Number of Permissions'].unique())))
+ax.set_xticklabels(new_df['Number of Permissions'].unique())
+ax.legend(handles=legend_elements, title='Category', loc='upper right')
+
+plt.xlabel('Number of permissions')
+plt.ylabel("Number of extensions")
+
+
+# Save the final combined plot
+plt.savefig(os.path.join(output_dir, 'combined_plot_different_colors.pgf'), bbox_inches='tight')
+plt.show()"""
+
+#Only select numbers
+numeric_cols = permissions_counts.select_dtypes(include='number')
+#Get column totals
+total_col = numeric_cols.sum()
+#Get row totals
+permissions_counts['Total'] = numeric_cols.sum(axis=1)
+#Sort
+permissions_counts = permissions_counts.sort_values(by='Total',ascending=False)
+#Remove unnamed
+permissions_counts.drop('Unnamed: 67')
+#Add total row 
+permissions_counts.loc['Total'] = total_col
+#Make latex code
+permissions_counts = permissions_counts.round(0)
+latex_code = permissions_counts.to_latex(index=True, header=list(permissions_counts.columns),float_format='%.0f')
+
+perm_file = os.path.join(output_dir, 'permissions.tex')
+with open(perm_file, 'w') as f:
+    f.write(latex_code)
+
+print(f"Creating permission requested table at {perm_file}")
