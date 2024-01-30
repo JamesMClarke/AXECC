@@ -10,7 +10,8 @@ Perms = ['accessibilityFeatures.modify','accessibilityFeatures.read','bookmarks'
          'proxy','sessions','history','tabs','system.storage','tabCapture','tabGroups','topSites','ttsEngine','webAuthenticationProxy','webNavigation',
          'storage','activeTab','alarms','idle','unlimitedStorage','offscreen','scripting','declarativeNetRequestWithHostAccess','identity',
          'webRequest','webRequestBlocking','contextMenus','browsingData','background','power','contextMenus','declarativeContent','tts',
-         'cookies','commands','gcm','chrome://favicon/','fileBrowserHandler','sidePanel','system.display','fontSettings',
+         'cookies','commands','gcm','chrome://favicon/','fileBrowserHandler','sidePanel','system.display','fontSettings', 
+         'search', 'windows', 'downloads.shelf', 'system.memory', 'system.cpu', 'downloads.open',
          'None']
 
 no_perms = len(Perms)

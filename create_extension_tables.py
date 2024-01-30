@@ -60,7 +60,7 @@ with open(summary_file, 'w') as f:
         df[' population'] = df[' population'].str.replace('Not Mentioned', '0')
         total_population = round(df[' population'].astype(float).sum())
         average_population = round(total_population / total_ext)
-        average_rating = round(df[' rating'].astype(float).sum() / total_ext)
+        average_rating = round(df[' rating'].astype(float).sum() / total_ext, 2)
         df['total_perms']= df.iloc[:,9:-1].astype(float).sum(axis=1)
         total_perms = df['total_perms'].sum()
         average_perms = round(total_perms/total_ext)
