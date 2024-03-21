@@ -15,6 +15,8 @@ Install requirements
 python -m pip install -r requirements.txt
  ```
 
+## Basics
+All files will are saved to the ```extensions\<name_of_txt>``` folder.
 
 ## 1. Get a list of extensions
 First we need to get a list of extensions. This is done using the console in a web browser, by finding the relevant extensions on the Google Store. We then get the URL of each extension by running the scrip "get_extension_urls.js" in the developer console and saving the results to a txt file. Need to set profile which is already logged in, for some extensions which include "mature content". Currently this list needs to not include extra info after the actual link, having info such as `?hl` will cause the script to crash
@@ -32,15 +34,15 @@ python3 download_extension.py -h
 After this, we need to process the crx files ready for analysis. We start by extracting them, which takes them from crx to normal folders. After this we try to
 deobfuscate and beautify where possible using JS Beautify. To run:
 ```bash 
-python3 preprocess.py <file.csv>
+python3 preprocess.py <file.sqlite>
 #See below for full details
-python 3 download_extension.py -h
+python 3 preprocess.py -h
 ```
 
 ## 4. Get info from manifest
 We then get permissions, manifest version and hosts and output them into two csv files.
 ```bash 
-python3 get_manifest.py <file.csv> 
+python3 get_manifest.py <file.sqlite> 
 ```
 ### 4.1 Create tables from manifest
 Once we have gotten this info we can automatically create tables for tex files:
