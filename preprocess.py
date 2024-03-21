@@ -2,6 +2,7 @@ from pathlib import Path
 import os, argparse, sys, csv, zipfile, jsbeautifier, cssbeautifier, _thread, subprocess
 from tqdm import tqdm
 from time import sleep
+from common import *
 
 #Function to try create dir if it doesn't exist
 def create_directory(directory_path):
@@ -12,65 +13,65 @@ current_dir = os.getcwd()
 #TODO: Add the ablity to include multiple folders
 #Take input of csv file
 parser = argparse.ArgumentParser("Preprocess extensions")
-parser.add_argument("csv", help="Input the name of the csv file to be processed.", type=str)
+parser.add_argument("sql", help="Input the name of the sqlite file to be processed.", type=str)
 parser.add_argument("-v",'--verbose', action='store_true')
 args = parser.parse_args()
-csv_file = args.csv
+sql_file = args.sql
 verbose = args.verbose
 
-csv_name = os.path.basename(csv_file).split(".")[0]
+sql_name = os.path.basename(sql_file).split(".")[0]
 
 #Check if csv file exists
-csv_file = os.path.join(current_dir,csv_file)
-if(os.path.isfile(csv_file)):
-    print("File %s exists, starting preprocessing" %(csv_name))
+sql_file = os.path.join(current_dir,sql_file)
+if(os.path.isfile(sql_file)):
+    print("File %s exists, starting preprocessing" %(sql_name))
 else:
-    print("File %s doesn't exists, stopping" %(csv_file))
+    print("File %s doesn't exists, stopping" %(sql_file))
     sys.exit()
 
 #Create folder for files to be unzipped into
-unzip_dir = os.path.join(current_dir,"preprocessed",csv_name)
+unzip_dir = os.path.join(current_dir,"preprocessed",sql_name)
 create_directory(unzip_dir)
 print("Unzipping all crx files into folder: %s" %(unzip_dir))
 
 #Set dir for crx files
-crx_dir = os.path.join(current_dir,"crx_files",csv_name)
+crx_dir = os.path.join(current_dir,"crx_files",sql_name)
 
 #Unzip all crxs in csv file
 errors = 0
 unzipped = 0
-with open(csv_file, 'r') as csvfile:
-    reader = csv.reader(csvfile)
-    rows = list(reader)
-    no_rows = len(rows)
-    with tqdm(total=no_rows) as pbar:
-        for row in rows:
-            file = row[7]\
-            #Checks if there is a file to unzip
-            if(os.path.isfile(os.path.join(crx_dir, file))):
-                #Check if folder already exists
-                if(os.path.isdir(os.path.join(unzip_dir, file.split('.')[0]))):
-                    if verbose:
-                        tqdm.write("Folder already exists")
-                        tqdm.write(file)
-                        tqdm.write(row[1])
-                
-                #Try to unzip file
-                try:
-                    with zipfile.ZipFile(os.path.join(crx_dir,file), 'r') as zip_ref:
-                        unzipped += 1
-                        zip_ref.extractall(os.path.join(unzip_dir,file.split('.')[0]))
-                except Exception as e :
-                    if verbose:
-                        tqdm.write("Error unzipping %s"%file)
-                    errors += 1
-                    errors_file = open('Error Unzip.csv', 'a', encoding='utf-8')
-                    errors_file.write(row[0]+row[1]+file+str(e)+'\n')
-                    errors_file.close()
-            else:
-                tqdm.write("File %s doesn't exist"%file)
 
-            pbar.update(1)
+conn = create_connection(sql_file)
+files = select_column(conn, 'file')
+
+no_rows = len(files)
+with tqdm(total=no_rows) as pbar:
+    for file in files:
+        #Checks if there is a file to unzip
+        if(os.path.isfile(os.path.join(crx_dir, file))):
+            #Check if folder already exists
+            if(os.path.isdir(os.path.join(unzip_dir, file.split('.')[0]))):
+                if verbose:
+                    tqdm.write("Folder already exists")
+                    tqdm.write(file)
+                    tqdm.write(row[1])
+
+            #Try to unzip file
+            try:
+                with zipfile.ZipFile(os.path.join(crx_dir,file), 'r') as zip_ref:
+                    unzipped += 1
+                    zip_ref.extractall(os.path.join(unzip_dir,file.split('.')[0]))
+            except Exception as e :
+                if verbose:
+                    tqdm.write("Error unzipping %s"%file)
+                errors += 1
+                errors_file = open('Error Unzip.csv', 'a', encoding='utf-8')
+                errors_file.write(row[0]+row[1]+file+str(e)+'\n')
+                errors_file.close()
+        else:
+            tqdm.write("File %s doesn't exist"%file)
+
+        pbar.update(1)
 
 #Check if all files could be unzipped
 if errors != 0:
@@ -91,41 +92,39 @@ else:
 
 print("Trying to Deobfuscate and de-minify")
 
-with open(csv_file, 'r') as csvfile:
-    with tqdm(total=no_rows) as pbar:
-        for row in rows:
-            #Get filename and remove .crx
-            file = row[7]
-            if file != "error":
-                file_name = file.split('.')[0]
 
-                #Set location of uzipped folder
-                unzipped_ext = os.path.join(unzip_dir,file_name)
+with tqdm(total=no_rows) as pbar:
+    for file in files:
+        if file != "error":
+            file_name = file.split('.')[0]
 
-                #For all files,including sub dirs, in the unzipped folder
-                for dirpath, dirnames, filenames in os.walk(unzipped_ext):
-                    for filename in filenames:
-                        #If the file is javascript or html
-                        if filename.endswith(".js") or filename.endswith(".html"):
-                            #Set filepath
-                            filepath = os.path.join(dirpath, filename)
-                            if(verbose):
-                                pbar.write("Deobfuscating and de-minifying %s" %filepath)
+            #Set location of uzipped folder
+            unzipped_ext = os.path.join(unzip_dir,file_name)
 
-                            for attempt in range(5):
-                                    try:
-                                        #Run js-beautify
-                                        command = 'js-beautify "'+filepath+'" -r'
-                                        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-                                        if verbose:
-                                            pbar.write(result.stdout)
-                                        break
-                                    except Exception as e:
-                                        if attempt == 4:  # This is the last attempt
-                                            tqdm.write(filepath+" couldn't be saved")
-                                            errors_file = open('Error Processing.txt', 'a', encoding='utf-8')
-                                            errors_file.write(filepath + " "+ str(e)+'\n')
-                                            errors_file.close()
-                                            #raise  # Re-raise the last exception
-                            
-            pbar.update(1)
+            #For all files,including sub dirs, in the unzipped folder
+            for dirpath, dirnames, filenames in os.walk(unzipped_ext):
+                for filename in filenames:
+                    #If the file is javascript or html
+                    if filename.endswith(".js") or filename.endswith(".html"):
+                        #Set filepath
+                        filepath = os.path.join(dirpath, filename)
+                        if(verbose):
+                            pbar.write("Deobfuscating and de-minifying %s" %filepath)
+
+                        for attempt in range(5):
+                                try:
+                                    #Run js-beautify
+                                    command = 'js-beautify "'+filepath+'" -r'
+                                    result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+                                    if verbose:
+                                        pbar.write(result.stdout)
+                                    break
+                                except Exception as e:
+                                    if attempt == 4:  # This is the last attempt
+                                        tqdm.write(filepath+" couldn't be saved")
+                                        errors_file = open('Error Processing.txt', 'a', encoding='utf-8')
+                                        errors_file.write(filepath + " "+ str(e)+'\n')
+                                        errors_file.close()
+                                        #raise  # Re-raise the last exception
+
+        pbar.update(1)

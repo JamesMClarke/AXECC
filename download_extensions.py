@@ -1,6 +1,6 @@
 from common import *
 from tqdm import tqdm
-import urllib.request, argparse, time, os, re, sys
+import urllib.request, argparse, time, os, re, sys, shutil
 from bs4 import BeautifulSoup
 from sqlite3 import Error
 
@@ -58,19 +58,23 @@ if(not os.path.isfile(url_file)):
 #extension_file = urls_name+".csv"
 db_file = urls_name+".sqlite"
 conn = create_connection(db_file)
-create_table(conn)
-
-if(resume):
-    print("File %s exists, Resumeing download" %(urls_name))
-    c = conn.cursor()
-    c.execute(f"SELECT url FROM extensions")
-    already_done = str(c.fetchall())
-else:
-    print("File %s exists, starting to download" %(urls_name))
 
 #Create download folder
 download_folder = os.path.join(crx_folder, urls_name)
+
+if(resume):
+    print("File %s exists, Resumeing download" %(urls_name))
+    already_done = select_column(conn, 'url')
+else:
+    print("File %s exists, starting to download" %(urls_name))
+    drop_table(conn,'extensions')
+    if os.path.exists(download_folder):
+        # Delete the empty folder using os.rmdir()
+        shutil.rmtree(download_folder)
+
+create_table(conn)
 create_directory(download_folder)
+
 
 #Get list of extensions
 extension_list = open(url_file, 'r', encoding='utf-8') #,encoding="utf8"
@@ -79,11 +83,8 @@ extension_urls = [x.strip() for x in extension_urls]
 
 no_extensions = len(extension_urls)
 
-print(no_extensions)
-
 with tqdm(total=no_extensions) as pbar:
     for url in extension_urls:
-        print(resume)
         if resume and url in already_done:
             if verbose:
                 tqdm.write("skipping %s"%(url))

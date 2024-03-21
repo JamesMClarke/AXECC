@@ -45,3 +45,12 @@ def select_where(conn, table, element, value):
     c = conn.cursor()
     c.execute(f"SELECT * FROM {table} WHERE {element} = {value}")
     return c.fetchall()
+
+def select_column(conn, column):
+    c = conn.cursor()
+    c.execute(f"SELECT {column} FROM extensions")
+    return [row[0] for row in c.fetchall()]
+
+def drop_table(conn, table):
+    c = conn.cursor()
+    c.execute(f"DROP TABLE IF EXISTS {table}")
