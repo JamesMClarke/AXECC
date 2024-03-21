@@ -29,13 +29,15 @@ else:
     print("File %s doesn't exists, stopping" %(sql_file))
     sys.exit()
 
-#Create folder for files to be unzipped into
-unzip_dir = os.path.join(current_dir,"preprocessed",sql_name)
-create_directory(unzip_dir)
-print("Unzipping all crx files into folder: %s" %(unzip_dir))
+all_files = os.path.join(current_dir,"extensions")
+category_folder = os.path.join(all_files, sql_name)
 
 #Set dir for crx files
-crx_dir = os.path.join(current_dir,"crx_files",sql_name)
+crx_dir = os.path.join(category_folder,"crx_files")
+#Create folder for files to be unzipped into
+unzip_dir = os.path.join(category_folder,"preprocessed")
+create_directory(unzip_dir)
+print("Unzipping all crx files into folder: %s" %(unzip_dir))
 
 #Unzip all crxs in csv file
 errors = 0

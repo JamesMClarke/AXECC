@@ -8,16 +8,16 @@ def create_table(conn):
     try:
         c = conn.cursor()
         c.execute(""" CREATE TABLE IF NOT EXISTS extensions (
-                                        id integer PRIMARY KEY AUTOINCREMENT,
-                                        name text,
-                                        url text,
-                                        producer_name text,
-                                        producer_company text,
-                                        producer_address text,
-                                        category text,
-                                        population int,
-                                        rating int,
-                                        no_ratings,
+                                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                        name TEXT,
+                                        url TEXT,
+                                        producer_name TEXT,
+                                        producer_company TEXT,
+                                        producer_address TEXT,
+                                        category TEXT,
+                                        population INTEGER,
+                                        rating INTEGER,
+                                        no_ratings INTEGER,
                                         file text
                                     ); """)
     except Error as e:
@@ -31,10 +31,6 @@ def create_ext(conn, extension_name, url, producer_name, producer_company, produ
 
 
 current_dir = os.getcwd()
-crx_folder = os.path.join(current_dir,"crx_files")
-
-#Create dir for all crx files
-create_directory(crx_folder)
 
 #Take input of txt file
 parser = argparse.ArgumentParser("Download extenions")
@@ -55,12 +51,14 @@ if(not os.path.isfile(url_file)):
     print("File %s doesn't exists, stopping" %(url_file))
     sys.exit()
 
-#extension_file = urls_name+".csv"
-db_file = urls_name+".sqlite"
-conn = create_connection(db_file)
 
-#Create download folder
-download_folder = os.path.join(crx_folder, urls_name)
+all_files = os.path.join(current_dir,"extensions")
+category_folder = os.path.join(all_files, urls_name)
+create_directory(category_folder)
+download_folder = os.path.join(category_folder,"crx_files")
+
+db_file = os.path.join(category_folder,urls_name+".sqlite")
+conn = create_connection(db_file)
 
 if(resume):
     print("File %s exists, Resumeing download" %(urls_name))
@@ -73,6 +71,7 @@ else:
         shutil.rmtree(download_folder)
 
 create_table(conn)
+
 create_directory(download_folder)
 
 
