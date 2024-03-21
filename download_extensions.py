@@ -1,7 +1,33 @@
 from common import *
 from tqdm import tqdm
-import urllib.request, argparse, time, os, re
+import urllib.request, argparse, time, os, re, sys
 from bs4 import BeautifulSoup
+from sqlite3 import Error
+
+def create_table(conn):
+    try:
+        c = conn.cursor()
+        c.execute(""" CREATE TABLE IF NOT EXISTS extensions (
+                                        id integer PRIMARY KEY AUTOINCREMENT,
+                                        name text,
+                                        url text,
+                                        producer_name text,
+                                        producer_company text,
+                                        producer_address text,
+                                        category text,
+                                        population int,
+                                        rating int,
+                                        no_ratings,
+                                        file text
+                                    ); """)
+    except Error as e:
+        print(e)
+
+def create_ext(conn, extension_name, url, producer_name, producer_company, producer_address, extension_category, extension_population, extension_ratings, no_ratings, file_name):
+    sql = ''' INSERT INTO extensions(name, url, producer_name, producer_company, producer_address, category, population, rating, no_ratings, file) VALUES (?,?,?,?,?,?,?,?,?,?)'''
+    cur = conn.cursor()
+    cur.execute(sql, (re.sub('[<>:"/\|?*,]',' ',extension_name), url, re.sub('[<>:"/\|?*,]',' ',producer_name), re.sub('[<>:"/\|?*,]',' ',producer_company), re.sub('[<>:"/\|?*,]',' ',producer_address), extension_category, re.sub(",",'',extension_population), extension_ratings, re.sub("ratings",'',no_ratings), file_name))
+    conn.commit()
 
 
 current_dir = os.getcwd()
@@ -23,20 +49,23 @@ verbose = args.verbose
 #Get file name
 urls_name = os.path.basename(urls).split(".")[0]
 
-#Check if csv file exists
+#Check if txt file exists
 url_file = os.path.join(current_dir,urls)
 if(not os.path.isfile(url_file)):
     print("File %s doesn't exists, stopping" %(url_file))
     sys.exit()
 
-extension_file = urls_name+".csv"
+#extension_file = urls_name+".csv"
+db_file = urls_name+".sqlite"
+conn = create_connection(db_file)
+create_table(conn)
+
 if(resume):
-    print("File %s exists, Resuming download" %(urls_name))
-    with open(extension_file, 'r') as f:
-        reader = csv.reader(f)
-        already_done = str(list(reader))
+    print("File %s exists, Resumeing download" %(urls_name))
+    c = conn.cursor()
+    c.execute(f"SELECT url FROM extensions")
+    already_done = str(c.fetchall())
 else:
-    open(extension_file, 'w').close()
     print("File %s exists, starting to download" %(urls_name))
 
 #Create download folder
@@ -54,7 +83,7 @@ print(no_extensions)
 
 with tqdm(total=no_extensions) as pbar:
     for url in extension_urls:
-        list_file = open(extension_file, 'a', encoding='utf-8') #
+        print(resume)
         if resume and url in already_done:
             if verbose:
                 tqdm.write("skipping %s"%(url))
@@ -91,7 +120,7 @@ with tqdm(total=no_extensions) as pbar:
 
         str2=url.split('/')
         n = len(str2)
-        url = "https://clients2.google.com/service/update2/crx?response=redirect&os=linux&arch=x64&os_arch=x86_64&nacl_arch=x86-64&prod=chromium&prodchannel=unknown&prodversion=91.0.4442.4&lang=en-US&acceptformat=crx2,crx3&x=id%3D"+ str2[n-1] + "%26installsource%3Dondemand%26uc"
+        download_url = "https://clients2.google.com/service/update2/crx?response=redirect&os=linux&arch=x64&os_arch=x86_64&nacl_arch=x86-64&prod=chromium&prodchannel=unknown&prodversion=91.0.4442.4&lang=en-US&acceptformat=crx2,crx3&x=id%3D"+ str2[n-1] + "%26installsource%3Dondemand%26uc"
         #Try to download file
         for attempt in range(5):
             try:
@@ -103,10 +132,10 @@ with tqdm(total=no_extensions) as pbar:
                     while os.path.isfile(os.path.join(download_folder,file+'_'+str(i)+".crx")):
                         i += 1
 
-                    urllib.request.urlretrieve(url, os.path.join(download_folder,file+'_'+str(i)+".crx"))
+                    urllib.request.urlretrieve(download_url, os.path.join(download_folder,file+'_'+str(i)+".crx"))
                     file_name  = os.path.join(file+'_'+str(i)+".crx")
                 else:
-                    urllib.request.urlretrieve(url, os.path.join(download_folder,file+".crx"))
+                    urllib.request.urlretrieve(download_url, os.path.join(download_folder,file+".crx"))
                     file_name = file+".crx"
                 break
             except Exception as e:
@@ -120,9 +149,12 @@ with tqdm(total=no_extensions) as pbar:
                     #driver.get('http://chrome-extension-downloader.com/')
 
         #Write extension details to file
-        list_file.write(re.sub('[<>:"/\|?*,]',' ',extension_name) + ',' + url + ',' + re.sub('[<>:"/\|?*,]',' ',producer_name) + ',' + re.sub('[<>:"/\|?*,]',' ',producer_company) + ',' + re.sub('[<>:"/\|?*,]',' ',producer_address) + ',' + extension_category + ',' + re.sub(",",'',extension_population) + ',' + extension_ratings + ',' + re.sub("ratings",'',no_ratings) + ',' + file_name+ '\n')
-        list_file.close()
+        #list_file.write(re.sub('[<>:"/\|?*,]',' ',extension_name) + ',' + url + ',' + re.sub('[<>:"/\|?*,]',' ',producer_name) + ',' + re.sub('[<>:"/\|?*,]',' ',producer_company) + ',' + re.sub('[<>:"/\|?*,]',' ',producer_address) + ',' + extension_category + ',' + re.sub(",",'',extension_population) + ',' + extension_ratings + ',' + re.sub("ratings",'',no_ratings) + ',' + file_name+ '\n')
+        #list_file.close()
+        create_ext(conn, extension_name, url, producer_name, producer_company, producer_address, extension_category, extension_population, extension_ratings, no_ratings, file_name)
         #time.sleep(2)
 
     #Update progess bard
     pbar.update(1)
+
+conn.close()
