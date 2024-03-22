@@ -100,23 +100,45 @@ with tqdm(total=no_extensions) as pbar:
         extension_name = name_box.text.strip()
 
         producer_box = soup.find('div', attrs={'class':'C2WXF'})
-        #print(list(producer_box.stripped_strings))
-        producer_name, producer_company, producer_address = producer_box.stripped_strings
+        try:
+            try:
+                producer_name, producer_company, producer_address = producer_box.stripped_strings
+            except:
+                producer_name, producer_address = producer_box.stripped_strings
+                producer_company = producer_name
+        except:
+            try:
+                # Find the element with class 'Qt4bne rlxkgb'
+                li_elements = soup.find('li', class_='Qt4bne rlxkgb')
+                producer_name = li_elements.text.replace("Offered by", "")
+            except:
+                producer_name = 'None'
+
+            producer_company = 'None'
+            producer_address = 'None'
+
+
         producer_address = producer_address.replace("\n", '')
 
 
         category_box = soup.find('a', attrs={'class':'gqpEIe bgp7Ye'})
         extension_category = category_box.text.strip()
 
-        population_box = soup.find(string=lambda text: text and re.search(r"\d+,?\d+ users", text))
-        extension_population = population_box.text.strip()
-        extension_population = extension_population.replace(' users', '')
+        try:
+            population_box = soup.find(string=lambda text: text and re.search(r"\d* users", text))
+            extension_population = population_box.text.strip()
+            extension_population = extension_population.replace(' users', '')
+        except:
+            extension_population = '0'
 
         ratings_box = soup.find('span', attrs={'class':'Vq0ZA'})
-        extension_ratings = ratings_box.text.strip()
+        extension_ratings = str(ratings_box.text.strip())
 
-        no_ratings_box = soup.find('p', attrs={'class': 'xJEoWe'})
-        no_ratings = no_ratings_box.text.strip()
+        try:
+            no_ratings_box = soup.find('p', attrs={'class': 'xJEoWe'})
+            no_ratings = no_ratings_box.text.strip()
+        except:
+            no_ratings = '0'
 
         str2=url.split('/')
         n = len(str2)
@@ -154,7 +176,7 @@ with tqdm(total=no_extensions) as pbar:
         create_ext(conn, extension_name, url, producer_name, producer_company, producer_address, extension_category, extension_population, extension_ratings, no_ratings, file_name)
         #time.sleep(2)
 
-    #Update progess bard
-    pbar.update(1)
+        #Update progess bard
+        pbar.update(1)
 
 conn.close()
