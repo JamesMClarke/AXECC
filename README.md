@@ -19,7 +19,14 @@ python -m pip install -r requirements.txt
 All files will are saved to the ```extensions\<name_of_txt>``` folder.
 
 ## 1. Get a list of extensions
-First we need to get a list of extensions. This is done using the console in a web browser, by finding the relevant extensions on the Google Store. We then get the URL of each extension by running the scrip "get_extension_urls.js" in the developer console and saving the results to a txt file. Need to set profile which is already logged in, for some extensions which include "mature content". Currently this list needs to not include extra info after the actual link, having info such as `?hl` will cause the script to crash
+First we need to get a list of extensions. This can be done using the following get_urls.mjs, all it needs the url you want to get the urls from for example https://chromewebstore.google.com/search/example.
+```bash
+# For a search
+node get_urls.mjs <url> <file_name>
+
+#For a category
+node get_urls.mjs -c <url> <file_name>
+```
 
 ## 2. Downloading extensions
 Next, we need to download the crx files for each extension. While doing this, the script will also gather data about each extension, such as name, developer, rating, number of downloads, etc. This can be done using the script "download_extensions.py", example: 
