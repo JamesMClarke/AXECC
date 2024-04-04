@@ -67,8 +67,12 @@ python3 get_asts.py <file.csv>
 ## 6. Running crawl
 We can run a crawl of a test site using all extensions, doing this records the HTML of the page and the network traffic while visiting it.
 ```bash
-#Where time is the length of time spent on the site
-python3 vist_site.py <file.csv> <time>
+# Create and rundocker containers
+docker-compose -f docker/docker-compose.yaml up --build -d
+# Get a bash terminal in container
+docker exec -it docker-automation-1 /bin/bash
+# Run crawl
+node crawl.mjs </src/extensions/folder/file.sqlite> <time in ms>
 ```
 
 ## 7. Finding trackers
