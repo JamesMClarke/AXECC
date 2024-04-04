@@ -125,9 +125,10 @@ with tqdm(total=no_extensions) as pbar:
         extension_category = category_box.text.strip()
 
         try:
-            population_box = soup.find(string=lambda text: text and re.search(r"\d* users", text))
+            population_box = soup.find(string=lambda text: text and re.search(r"\d* (user|users)", text))
             extension_population = population_box.text.strip()
             extension_population = extension_population.replace(' users', '')
+            extension_population =  extension_population.replace(' user', '')
         except:
             extension_population = '0'
 
@@ -137,6 +138,11 @@ with tqdm(total=no_extensions) as pbar:
         try:
             no_ratings_box = soup.find('p', attrs={'class': 'xJEoWe'})
             no_ratings = no_ratings_box.text.strip()
+            no_ratings = no_ratings.replace("ratings", "")
+            no_ratings = no_ratings.replace("rating", "")
+            no_ratings = no_ratings.replace('K', '000')
+            no_ratings = no_ratings.replace('.','')
+
         except:
             no_ratings = '0'
 
