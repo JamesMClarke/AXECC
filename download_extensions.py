@@ -153,7 +153,8 @@ with tqdm(total=no_extensions) as pbar:
         for attempt in range(5):
             try:
                 extension = '.crx'
-                file = re.sub('[<>:"/\|?*,.]',' ',extension_name)
+                file = re.sub('[<>:"/\|?*,.]','',extension_name)
+                file = file.replace(' ', '_')
                 #Checks if the file already exists, if it does creates a versions with number at the end
                 if os.path.isfile(os.path.join(download_folder, file+".crx")):
                     i = 1
