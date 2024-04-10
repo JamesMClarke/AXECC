@@ -1,0 +1,199 @@
+$primary-font-family: sans-serif;
+$secondary-font-family: serif;
+
+$base-font-size: 14px;
+
+$primary-color: #000000;
+$secondary-color: #787878;
+$tertiary-color: #ffffff;
+$quaternary-color: red;
+$quinary-color: green;
+
+$dotted-border: 1px dotted;
+$solid-border: 1px solid;
+
+@mixin columns {
+  width: 50%;
+  display: inline-block;
+}
+
+@mixin button--rounded-corners {
+    background-color: $primary-color;
+    color: $tertiary-color;
+    font-family: $primary-font-family;
+    font-size: $base-font-size;
+    font-weight: 700;
+    margin: 0 auto;
+    padding: 1em;
+    border-radius: 5px;
+    border: $solid-border ;
+    width:  auto;
+    min-width: 10%;
+    max-width: 100%;
+}
+
+
+body {
+  margin: 0 auto;
+  display: flex;
+  overflow-x: hidden;
+  width: 100%;
+
+  @media screen and (max-width: 1024px) {
+    overflow-x: none;
+  }
+}
+
+main {
+  width: 100%;
+}
+
+h1 {
+  font-family: $primary-font-family;
+  font-size: ($base-font-size * 2.25);
+  font-weight: normal;
+}
+
+p {
+  font-family: $primary-font-family;
+  font-size: $base-font-size;
+  font-weight: normal;
+}
+
+.content--form {
+  margin: 0 auto;
+  width: 50%;
+
+  @media screen and (max-width: 1024px) and (orientation: portrait) {
+    width: 100%;
+    margin: 1em;
+  }
+
+  @media screen and (max-width: 1024px) and (orientation: landscape) {
+    width: 75%;
+    margin: 0 auto;
+  }
+}
+
+.row {
+  padding: 1em;
+}
+
+label {
+  font-family: $primary-font-family;
+  font-size: ($base-font-size + 1);
+  font-weight: 700;
+
+  &:first-of-type {
+    padding-right: 0.5em;
+  }
+
+  &:nth-of-type(2) {
+    padding-right: 0.99em
+  }
+}
+
+input[type=text],
+input[type=password],
+input[type=email] {
+  padding: 0.25em;
+  width: 75%;
+  border-radius: 5px;
+  margin-bottom: 2em;
+
+  &:focus {
+    background-color: lighten($secondary-color, 25%);
+  }
+}
+
+.column--left {
+  @include columns();
+  float: left;
+
+  @media screen and (max-width: 1024px) {
+    display: inline-block;
+    margin-right: 2em;
+    float: none;
+  }
+}
+
+.column--right {
+  @include columns();
+  float: right;
+  width: 40%;
+
+  @media screen and (max-width: 1024px) and (orientation: portrait) {
+    display: inline-block;
+    float: none;
+    width: 160px;
+    margin-top: 1.5em;
+  }
+}
+
+input[type=submit] {
+  @include button--rounded-corners();
+
+  &:hover {
+    background-color: $secondary-color;
+  }
+}
+
+input[type=button] {
+  @include button--rounded-corners();
+  background-color: $quaternary-color;
+  color: $tertiary-color;
+
+  &:hover {
+    background-color: $secondary-color;
+  }
+}
+
+#content--password-val-info,
+#content--password-mem {
+  display: none;
+}
+
+#content--password-mem {
+  width: 50%;
+  margin: 0 auto;
+
+  @media screen and (max-width:1024px) and (orientation: portrait) {
+    width: 90%;
+  }
+}
+
+.content--validation {
+  padding: 4em 0;
+  font-family: $primary-font-family;
+
+
+  ul li {
+    padding: 1em 0 1em 1em;
+    list-style-type: none;
+  }
+
+  @media screen and (max-width: 1024px) and (orientation: portrait) {
+    margin: 1em;
+    padding: 2em 0;
+  }
+}
+
+.valid {
+  color: $quinary-color;
+
+  &:before {
+    position: relative;
+    left: -35px;
+    content: "✔️";
+  }
+}
+
+.invalid {
+  color: $quaternary-color;
+
+  &:before {
+    position: relative;
+    left: -35px;
+    content: "❌";
+  }
+}

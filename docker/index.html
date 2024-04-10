@@ -1,2 +1,63 @@
+<!DOCTYPE html>
+<!--https://codepen.io/sjmaitland/pen/yLLEZxb-->
+<html lang="en"> <head>
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+<head>
 
-<html><body><h1>Hello World</h1></body></html>
+<main>
+      <div class="content--form">
+        <h1>Login</h1>
+          <form method="post" action="#" name="#" id="#">
+            <input type="hidden" name="#" value="#" />
+
+          <div class="row">
+            <label for="username">User name:</label>
+              <input id="username" name="username" type="text" size="30" required aria-required="true" />
+											</div>
+
+											<div class="row">
+            <label for="password">Password:</label>
+                <input id="password" name="password" type="password" size="30" required aria-required="true" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" aria-describedby="content--password-val-info" />
+											</div>
+
+              <div class="column--left">
+                <input type="submit" value="Submit" />
+              </div><!-- END .column--left -->
+
+              <div class="column--right">
+                <input type="button" value="Forgot password?" aria-describedby="content--password-mem" />
+              </div><!-- END .column--right-->
+          </div><!-- END .row -->
+        </form>
+
+
+        <section id="content--password-val-info" class="content--validation" role="list">
+          <h2>Password must contain the following:</h2>
+            <ul>
+              <li id="lower" class="invalid">A lowercase letter</li>
+              <li id="capital" class="invalid">A capital/uppercase letter</li>
+              <li id="number" class="invalid">A number</li>
+              <li id="length" class="invalid">Minimum 8 characters</li>
+            </ul>
+        </div><!-- END .content--validation -->
+
+        <section id="content--password-mem" class="content--validation" role="complementary">
+          <h2>Enter your email address to retrieve your password:</h2>
+            <form method="post" action="#" name="#" id="#">
+              <input type="hidden" name="to" value="#" />
+              <input type="hidden" name="from" value="#" />
+              <input type="hidden" name="subject" value="#" />
+              <input type="hidden" name="redirect" value="#" />
+
+              <div class="row">
+                <label for="email">Email:</label>
+                <input id="email" name="email" type="email" size="30">
+              </div><!-- END EMAIL .row-->
+
+              <input type="submit" value="Submit" />
+            </form>
+      </div><!-- END .content--validation-->
+
+      </div><!-- END .content--form -->
+</main>
