@@ -11,8 +11,11 @@ import {
 
 import fs from 'fs-extra';
 
+import config from './custom-config.mjs';
+
 // add stealth plugin and use defaults (all evasion techniques)
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import lighthouse from 'lighthouse';
 puppeteer.use(StealthPlugin());
 
 
@@ -145,7 +148,7 @@ requestIdNew TEXT,
 timestamp TEXT,
 method TEXT,
 redirectChain TEXT,
-responseText
+responseText TEXT
 )`;
                  db.run(createTableRequests, (err) => {
                         if (verbose) {
@@ -153,6 +156,28 @@ responseText
                                 console.error(err.message);
                             } else {
                                 console.log('Requests table created (if it did not exist).');
+                            }
+                        }
+                    });
+
+       const createTableCrawl = `CREATE TABLE IF NOT EXISTS crawl (
+crawlId INTEGER PRIMARY KEY AUTOINCREMENT,
+extension TEXT,
+success INT,
+lighthouse INT,
+waveErrors INT,
+waveContrastErrors INT,
+waveAlerts INT,
+waveFeatures INT,
+waveStructuralElements INT,
+waveAria INT
+)`;
+                 db.run(createTableCrawl, (err) => {
+                        if (verbose) {
+                            if (err) {
+                                console.error(err.message);
+                            } else {
+                                console.log('Crawl table created (if it did not exist).');
                             }
                         }
                     });
@@ -256,13 +281,41 @@ async function addRequest(extension, request, response , redirectChain) {
         }
     });
 }
+function addCrawl(extension, success, lighthouseScore, wave) {
+    //console.log(lighthouseScore)
+    const db = new sqlite3.Database(sqlFile, (err) => {
+        if (err) {
+            reject(err);
+        } else {
+            const query = `INSERT INTO crawl (extension, success, lighthouse, waveErrors,waveContrastErrors,waveAlerts, waveFeatures, waveStructuralElements, waveAria ) VALUES (?,?,?,?,?,?,?,?,?)`;
+
+            db.run(query, [extension, success, lighthouseScore, wave.statistics.error, wave.statistics.contrast,  wave.statistics.alert, wave.statistics.feature, wave.statistics.structure, wave.statistics.aria], (err) => {
+                if (verbose) {
+                    if (err) {
+                        console.error(err.message);
+                        console.log("Error");
+                    } else {
+                        console.log(`Crawl ${extension} added to database.`);
+                    }
+                }
+            });
+
+        db.close((err) => {
+            if (verbose) {
+                if (err) {
+                    console.error(err.message);
+                } else {
+                    console.log('Closed the database connection.');
+                }
+            }
+        });
+        }
+    });
+}
 
 
 async function crawl(extension) {
-    console.log(outputDir);
-    console.log(extension);
     let extension_output = path.join(outputDir, extension)
-    console.log(extension_output);
     create_dir(extension_output);
     let browser;
     if (extension === 'baseline'){
@@ -313,9 +366,11 @@ async function crawl(extension) {
 
     await delay(vistTime);
 
+    // Screenshot and get html of page
     await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
     const htmlContent = await page.content();
     await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
+
 
     var allStorage = await getAllLocalStorage(page);
     await saveJsonToFile(allStorage, path.join(extension_output, 'localStorage.json'));
@@ -327,13 +382,37 @@ async function crawl(extension) {
     for (let i = 0; i < cookies.length; i++) {
         addCookies(extension, cookies[i]);
     }
-        await browser.close();
 
-        moveFiles("vv8", extension_output);
-        fs.rmSync(path.join(currentDir, 'tmp'), {
-            recursive: true,
-            force: true
-        });
+    // Get accessibility evaluation
+    const {lhr} = await lighthouse(url, undefined, config, page);
+    //console.log(lhr.categories.accessibility.score);
+    const responseObject = {};
+    page.on('console', async (msg) => {
+        const msgArgs = msg.args();
+        for (let i = 0; i < msgArgs.length; ++i) {
+            const responseValue = await msgArgs[i].jsonValue();
+
+            // Conditionally store responses based on message type (optional)
+            if (msg.type() === 'log') { // If you want to store only log messages
+                responseObject[i] = responseValue;
+            } else {
+            // Handle other message types if needed
+            }
+        }
+    });
+     // Use page.addScriptTag to add the script to the page
+    const waveScript = fs.readFileSync(path.join(process.cwd(), 'wave.min.js'), 'utf8');
+    await page.addScriptTag({ content: waveScript });
+    const waveStats = JSON.parse(responseObject[0]); // Access the first response
+    // console.log(waveStats);
+    addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
+     await browser.close();
+
+    moveFiles("vv8", extension_output);
+    fs.rmSync(path.join(currentDir, 'tmp'), {
+        recursive: true,
+        force: true
+    });
 
 }
 
@@ -366,7 +445,7 @@ const verbose = program.verbose || options.verbose || options.v;
 // Your program logic using csvFile, visitTime, and verbose
 
 console.log(`Processing SQLite file: ${sqlFile}`);
-console.log(`Visit time per extension: ${vistTime} seconds`);
+console.log(`Visit time per extension: ${vistTime} ms`);
 console.log(`Verbose mode: ${verbose}`);
 
 const url = 'http://web_server';
