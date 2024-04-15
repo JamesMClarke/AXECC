@@ -7,7 +7,6 @@ var category = false
 
  async function clickLoadMoreButton(page) {
    if (!category){
-     console.log("Not cat")
      const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf.Zg3Y9'); // More specific selector
      await button.click();
    } else {
@@ -110,13 +109,13 @@ for (i=0;i<r.length;i++){
 
     // Stop listening for console messages
     page.removeAllListeners('console');
-
-  const content = consoleMessages.join('\n'); // Join array elements with newline character
+  const uniqueArray = new Set(consoleMessages);
+  const content = Array.from(uniqueArray).join('\n'); // Join array elements with newline character
   fs.writeFile(path.join(output_dir, filename)+".txt", content, 'utf8', (err) => {
     if (err) {
       console.error('Error writing to file:', err);
     } else {
-      console.log(`Successfully wrote ${consoleMessages.length} items to ${filename}`);
+      console.log(`Successfully wrote ${uniqueArray.size} items to ${filename}`);
     }
   });
 
