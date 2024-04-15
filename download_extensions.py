@@ -120,9 +120,11 @@ with tqdm(total=no_extensions) as pbar:
 
         producer_address = producer_address.replace("\n", '')
 
-
-        category_box = soup.find('a', attrs={'class':'gqpEIe bgp7Ye'})
-        extension_category = category_box.text.strip()
+        try:
+            category_box = soup.find('a', attrs={'class':'gqpEIe bgp7Ye'})
+            extension_category = category_box.text.strip()
+        except:
+            extension_category = 'None'
 
         try:
             population_box = soup.find(string=lambda text: text and re.search(r"\d* (user|users)", text))
@@ -132,8 +134,11 @@ with tqdm(total=no_extensions) as pbar:
         except:
             extension_population = '0'
 
-        ratings_box = soup.find('span', attrs={'class':'Vq0ZA'})
-        extension_ratings = str(ratings_box.text.strip())
+        try:
+            ratings_box = soup.find('span', attrs={'class':'Vq0ZA'})
+            extension_ratings = str(ratings_box.text.strip())
+        except:
+            extension_ratings = '0'
 
         try:
             no_ratings_box = soup.find('p', attrs={'class': 'xJEoWe'})
@@ -170,7 +175,7 @@ with tqdm(total=no_extensions) as pbar:
             except Exception as e:
                 if attempt == 4:  # This is the last attempt
                     errors_file = open('Error URL.txt', 'a', encoding='utf-8')
-                    errors_file.write(ext+' -Downloading extension\n')
+                    errors_file.write(url+' -Downloading extension\n')
                     errors_file.write(str(e))
                     tqdm.write(extension_name+" couldn't be downloaded")
                     errors_file.close()
