@@ -80,7 +80,7 @@ create_dir(output_dir);
       break;
     }
     // Add a delay between clicks if needed (optional)
-    //await page.waitForTimeout(1000); // Wait 2 seconds before clicking again
+    await page.waitForTimeout(1000); // Wait 2 seconds before clicking again
   }
 
   page.on('console', async (msg) => {
@@ -123,7 +123,7 @@ for (i=0;i<r.length;i++){
   // Your automation code here to interact with the extension
 
   // Close the browser when done
-  await browser2.close();
+  //await browser2.close();
 
 
 })();
