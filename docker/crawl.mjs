@@ -225,7 +225,8 @@ async function addRequest(extension, request, response , redirectChain) {
         if (err) {
             reject(err);
         } else {
-
+            /*
+            try {
 
             let chain = request.redirectChain()
             let redirectChain = []
@@ -239,7 +240,13 @@ async function addRequest(extension, request, response , redirectChain) {
             }
 
             //let responseStatus = await response.status()
-            let responseStatus = response.status()
+            let responseStatus;
+            try {
+               responseStatus = response.status()
+            }catch (error) {
+  // Code to handle the error
+  console.error("An error occurred:", error.message);
+}
             let responseText;
 
             if (responseStatus == 200) {
@@ -253,12 +260,31 @@ async function addRequest(extension, request, response , redirectChain) {
             }
 
             const requestHeaders = JSON.stringify(request.headers());
-            const responseHeaders = JSON.stringify(response.headers());
+            let responseHeaders;
+            try {
+                responseHeaders = JSON.stringify(response.headers());
+            }  catch {
+                console.log("Error response status");
+            }
             redirectChain = JSON.stringify(redirectChain);
 
             const query = `INSERT INTO requests (extension, url, requestHeaders, responseHeaders, status, interceptionId, requestId, timestamp, method, redirectChain, responseText) VALUES (?, ?, ?, ?,?, ?, ?,?,?,?,?)`;
 
-            db.run(query, [extension, request.url(), requestHeaders, responseHeaders, response.status(), request._interceptionId, request._requestId, request.timestamp, request.method(), redirectChain, responseText == ""], (err) => {
+            db.run(query, [extension, request.url(), requestHeaders, responseHeaders, responseStatus, request._interceptionId, request._requestId, request.timestamp, request.method(), redirectChain, responseText == ""], (err) => {
+                if (verbose) {
+                    if (err) {
+                        console.error(err.message);
+                        console.log("Error");
+                    } else {
+                        console.log(`Request ${request.url()} added to database.`);
+                    }
+                }
+            });
+            */
+
+        const query = `INSERT INTO requests (extension, url) VALUES (?, ?)`;
+
+            db.run(query, [extension, request.url()], (err) => {
                 if (verbose) {
                     if (err) {
                         console.error(err.message);
@@ -373,7 +399,7 @@ async function crawl(extension) {
 
 
     var allStorage = await getAllLocalStorage(page);
-    await saveJsonToFile(allStorage, path.join(extension_output, 'localStorage.json'));
+    await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
     allStorage = await getAllSessionStorage(page);
     await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
 
@@ -390,7 +416,7 @@ async function crawl(extension) {
     page.on('console', async (msg) => {
         const msgArgs = msg.args();
         for (let i = 0; i < msgArgs.length; ++i) {
-            const responseValue = await msgArgs[i].jsonValue();
+           const responseValue = await msgArgs[i].jsonValue();
 
             // Conditionally store responses based on message type (optional)
             if (msg.type() === 'log') { // If you want to store only log messages
@@ -406,21 +432,39 @@ async function crawl(extension) {
     const waveStats = JSON.parse(responseObject[0]); // Access the first response
     // console.log(waveStats);
     addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
-     await browser.close();
+
+    const accessibilitySnapshot = await page.accessibility.snapshot();
+    await saveJsonToFile(accessibilitySnapshot,  path.join(extension_output, 'accessibilitySnapshot.json'));
+
+
+    await browser.close();
 
     moveFiles("vv8", extension_output);
     fs.rmSync(path.join(currentDir, 'tmp'), {
         recursive: true,
         force: true
     });
-
 }
 
 async function runCrawls(extensions) {
+    fs.copyFile('/artifacts/idldata.json', path.join(outputDir, 'idldata.json'), (err) => {
+        if (err) {
+            console.error('Error copying file:', err);
+        } else {
+            console.log('File copied successfully!');
+        }
+    });
+
     await crawl('baseline');
   for (const extension of extensions) {
     // Call crawl function directly without await (it's already async)
-      await crawl(extension.file);
+      try{
+          if (extensions.file != 'None'){
+              await crawl(extension.file);
+          }
+      } catch{
+          console.log("Error");
+      }
   }
 }
 
