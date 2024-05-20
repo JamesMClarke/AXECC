@@ -141,7 +141,7 @@ with tqdm(total=no_files) as pbar:
 
         for h in optional_host_permissions:
             if h != 'None':
-                if h in hosts:
+                if h in optional_hosts:
                     optional_hosts[h] += 1
                 else:
                     optional_hosts[h] = 1
