@@ -7,14 +7,17 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 ### Pre-requisites
 * NPM
     * [js-beautify](https://www.npmjs.com/package/js-beautify) installed globally
-    * [esprima](https://github.com/jquery/esprima) 
+    * [esprima](https://github.com/jquery/esprima)
 
-Install requirements
-
+* Python
 ```bash 
 python -m pip install -r requirements.txt
  ```
 
+* Other
+  * RE2 
+  * Docker 
+  
 ## Basics
 All files will are saved to the ```extensions\<name_of_txt>``` folder.
 
@@ -51,20 +54,8 @@ We then get permissions, manifest version and hosts and output them into two csv
 ```bash 
 python3 get_manifest.py <file.sqlite> 
 ```
-### 4.1 Create tables from manifest
-Once we have gotten this info we can automatically create tables for tex files:
-```bash
-python3 create_extension_tables -f <manifest/category1> -f <manifest/category2>
-```
-This will create some tables which are separate and some which are combined, for any number of categories.
 
-## 5. Generating ASTs
-We can then generate AST using Esprima
-```bash
-python3 get_asts.py <file.csv>
-```
-
-## 6. Running crawl
+## 5. Running crawl
 We can run a crawl of a test site using all extensions, doing this records the HTML of the page and the network traffic while visiting it.
 ```bash
 # Create and rundocker containers
@@ -75,14 +66,17 @@ docker exec -it docker-automation-1 /bin/bash
 node crawl.mjs </src/extensions/folder/file.sqlite> <time in ms>
 ```
 
-## 7. Finding trackers
-We can then search the network traffic from the crawl to find trackers. When doing this it identifies the type of tracker, and automatically downloads the latest versions of the tracker lists. 
-```bash
-python3 identify_trackers.py <file.sqlite> 
-```
+## 7. Post Processing
+We can now run our post-processor, we rely on [VisableV8's post processor](https://github.com/wspr-ncsu/visiblev8/tree/master/post-processor) to format VisableV8's results
 
-### 7.1 Making tables and graphs for trackers
-We can automatically make tables and graphs for the results, which will be outputted to the folder `tables_and_graphs`.
 ```bash
-python3 graph_trackers.py <files.sqlite>
+# Change directory to post process
+cd post-processor
+# Run post processor
+python3 postProcess.py ../extensions/folder/file.sqlite
 ```
+## n. Generating ASTs
+We can then generate AST using Esprima
+```bash
+python3 get_asts.py <file.csv>
+
