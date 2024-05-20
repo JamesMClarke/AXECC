@@ -26,7 +26,7 @@ def create_table(conn):
 def create_ext(conn, extension_name, url, producer_name, producer_company, producer_address, extension_category, extension_population, extension_ratings, no_ratings, file_name):
     sql = ''' INSERT INTO extensions(name, url, producer_name, producer_company, producer_address, category, population, rating, no_ratings, file) VALUES (?,?,?,?,?,?,?,?,?,?)'''
     cur = conn.cursor()
-    cur.execute(sql, (re.sub('[<>:"/\|?*,]',' ',extension_name), url, re.sub('[<>:"/\|?*,]',' ',producer_name), re.sub('[<>:"/\|?*,]',' ',producer_company), re.sub('[<>:"/\|?*,]',' ',producer_address), extension_category, re.sub(",",'',extension_population), extension_ratings, re.sub("ratings",'',no_ratings), file_name))
+    cur.execute(sql, (re.sub('[<>:"/\\|?*,]',' ',extension_name), url, re.sub('[<>:"/\\|?*,]',' ',producer_name), re.sub('[<>:"/\\|?*,]',' ',producer_company), re.sub('[<>:"/\\|?*,]',' ',producer_address), extension_category, re.sub(",",'',extension_population), extension_ratings, re.sub("ratings",'',no_ratings), file_name))
     conn.commit()
 
 
@@ -158,7 +158,7 @@ with tqdm(total=no_extensions) as pbar:
         for attempt in range(5):
             try:
                 extension = '.crx'
-                file = re.sub('[<>:"/\|?*,.]&()','',extension_name)
+                file = re.sub('[<>:"/\\|?*,.&()]','',extension_name)
                 file = file.replace(' ', '_')
                 #Checks if the file already exists, if it does creates a versions with number at the end
                 if os.path.isfile(os.path.join(download_folder, file+".crx")):
