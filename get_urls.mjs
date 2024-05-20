@@ -6,14 +6,13 @@ import { program } from 'commander';
 var category = false
 
  async function clickLoadMoreButton(page) {
-   if (!category){
-     const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf.Zg3Y9'); // More specific selector
-     await button.click();
-   } else {
-     const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf'); // More specific selector
-     await button.click();
-
-   }
+   //if (!category){
+  const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf'); // More specific selector
+    await button.click();
+   //} else {
+    // const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf'); // More specific selector
+    // await button.click();
+   //}
  }
 
 function create_dir(directoryPath){
@@ -70,25 +69,6 @@ create_dir(output_dir);
   // Call the function to click the button initially
   await clickLoadMoreButton(page);
 
-  // You can repeat this function in a loop to keep clicking as long as the button exists
-  while (true) {
-    try {
-      await clickLoadMoreButton(page);
-    } catch (error) {
-     //Break the loop if button not found (optional)
-      break;
-    }
-    // Add a delay between clicks if needed (optional)
-    await page.waitForTimeout(1000); // Wait 2 seconds before clicking again
-  }
-
-  page.on('console', async (msg) => {
-    const msgArgs = msg.args();
-    for (let i = 0; i < msgArgs.length; ++i) {
-      console.log(await msgArgs[i].jsonValue());
-    }
-  });
-
   const script = `
   var r = document.getElementsByTagName("a");
 //var p=0;
@@ -98,6 +78,21 @@ for (i=0;i<r.length;i++){
     	//p++;
     }
 }`
+
+var largestOuput = '';
+
+  // You can repeat this function in a loop to keep clicking as long as the button exists
+  while (true) {
+    try {
+      await clickLoadMoreButton(page);
+
+        page.on('console', async (msg) => {
+    const msgArgs = msg.args();
+    for (let i = 0; i < msgArgs.length; ++i) {
+      console.log(await msgArgs[i].jsonValue());
+    }
+  });
+
 
     const consoleMessages = [];
 
@@ -111,18 +106,33 @@ for (i=0;i<r.length;i++){
     page.removeAllListeners('console');
   const uniqueArray = new Set(consoleMessages);
   const content = Array.from(uniqueArray).join('\n'); // Join array elements with newline character
-  fs.writeFile(path.join(output_dir, filename)+".txt", content, 'utf8', (err) => {
+      // Check if the new output is longer, if it is set largest output
+      // Otherwise break the loop
+      if(content.length > largestOuput.length){
+        largestOuput = content;
+      } else{
+        break;
+      }
+    } catch (error) {
+     //Break the loop if button not found (optional)
+      break;
+    }
+    // Add a delay between clicks if needed (optional)
+    await page.waitForTimeout(2000); // Wait 2 seconds before clicking again
+  }
+
+  fs.writeFile(path.join(output_dir, filename)+".txt", largestOuput, 'utf8', (err) => {
     if (err) {
       console.error('Error writing to file:', err);
     } else {
-      console.log(`Successfully wrote ${uniqueArray.size} items to ${filename}`);
+      console.log(`Successfully wrote items to ${filename}`);
     }
   });
 
   // Your automation code here to interact with the extension
 
   // Close the browser when done
-  //await browser2.close();
+  await browser2.close();
 
 
 })();
