@@ -5,7 +5,7 @@ https://github.com/epitron/mitm-adblock/blob/master/adblock.py
 from adblockparser import AdblockRules, AdblockRule
 from glob import glob
 import urllib.request
-import csv, argparse, re2, os, sys, common, time, requests, json
+import csv, argparse, os, sys, common, time, requests, json
 from tqdm import tqdm
 
 class rule:
@@ -33,7 +33,7 @@ def combined(filename):
 def load_rules(blocklists=None):
     rules = AdblockRules(
         combined(blocklists),
-        use_re2=True,
+        use_re2=False,
         max_mem=1024*1024*1024
         # supported_options=['script', 'domain', 'image', 'stylesheet', 'object']
     )
@@ -114,7 +114,37 @@ print("* Done! Proxy server is ready to go!")
 
 total = 0
 conn = common.create_connection(sqlite_filepath)
-rows = common.select_all(conn, "trackers")
+rows = common.select_all(conn, "requests")
+
+# Get a cursor object
+cursor = conn.cursor()
+
+# Create the ALTER TABLE statement
+sql = f"""
+ALTER TABLE requests
+ADD COLUMN is_tracker INT;
+"""
+
+# Execute the statement
+cursor.execute(sql)
+
+# Commit changes (important to persist the data)
+conn.commit()
+
+# Create the ALTER TABLE statement
+sql = f"""
+ALTER TABLE requests
+ADD COLUMN tracker_type TEXT;
+"""
+
+# Execute the statement
+cursor.execute(sql)
+
+# Commit changes (important to persist the data)
+conn.commit()
+
+
+
 conn.close()
 with tqdm(total=len(rows)) as pbar:
   for row in rows:
@@ -135,17 +165,17 @@ with tqdm(total=len(rows)) as pbar:
 
     #Write results back to db
     if should_block:
-      sql = ''' UPDATE trackers
+      sql = ''' UPDATE requests
             SET is_tracker = ?,
             tracker_type = ?
-            WHERE id = ?'''
+            WHERE requestId = ?'''
       conn = common.create_connection(sqlite_filepath)
       common.insert_data(conn, sql, (should_block, category, id))
       conn.close()
     else:
-      sql = ''' UPDATE trackers
+      sql = ''' UPDATE requests
             SET is_tracker = ?
-            WHERE id = ?'''
+            WHERE requestId = ?'''
       conn = common.create_connection(sqlite_filepath)
       common.insert_data(conn, sql, (should_block, id))
       conn.close()
