@@ -1,9 +1,4 @@
-adblockparser==0.7
 beautifulsoup4==4.12.2
-cssbeautifier==1.14.9
-jsbeautifier==1.14.9
-mitmproxy==9.0.1
-pandas==2.0.3
-pyre2==0.3.6
-selenium==4.15.2
-tqdm==4.66.1
+matplotlib==3.8.4
+pandas==2.2.1
+tqdm==4.66.2
