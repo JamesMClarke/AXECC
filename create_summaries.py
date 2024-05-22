@@ -68,61 +68,6 @@ def create_summary_table(output_dir, extensions):
 
     summary_table += headings
 
-def create_trackers_table(vv8_trackers, network_trackers, extensions):
-    """
-    Function to create a table summarising the network trackers
-    :parma vv8_trackers: Dictonary containing extensions that track and the number found for vv8
-    :parma network_trackers: Dictonary containing extensions that track and the number found for vv8
-    :parma extension: Dataframe of all extensions
-    :return: Latex table containing trackers
-    """
-
-    table = ""
-
-    table += """\\begin{table}[h]
-    \\centering
-    \\begin{tabular}{lccc} \\toprule
-        Extension & \\# VV8 & \\# Network & Total \\\\
-         & Trackers & Trackers & Trackers \\\\ \\midrule
-"""
-
-    #Combine the two dictonaries to get the total column
-    combined_dict = {key: vv8_trackers.get(key, 0) + network_trackers.get(key, 0) for key in set(vv8_trackers.keys()) | set(network_trackers.keys())}
-    #Sort the combined dict
-    combined_dict = dict(sorted(combined_dict.items(), key=lambda item: item[1], reverse=True))
-
-    for extension in combined_dict.keys():
-
-        #Get values from dicts, if the key isn't in dict set it to 0
-        if extension in vv8_trackers:
-            vv8_count = vv8_trackers[extension]
-        else:
-            vv8_count = 0
-
-        if extension in network_trackers:
-            network_count = network_trackers[extension]
-        else:
-            network_count = 0
-
-        # Boolean mask for filtering
-        mask = extensions['file'] == extension
-        # Get value from name based on the filter
-        name = extensions.loc[mask, 'name'].iloc[0]
-        name = name.replace("&", "\\&")
-
-        # Get value from url based on the filter
-        url = extensions.loc[mask, 'url'].iloc[0]
-
-        table += f"""       \\href{{{url}}}{{{name}}} & {vv8_count} & {network_count} & {combined_dict[extension]} \\\\ \n"""
-
-    table += """        \\bottomrule
-    \\end{tabular}
-    \\caption{Number of trackers per extension}
-    \\label{tab:trackers}
-\\end{table}
-    """
-    return table
-
 def count_unique(df, column):
     """
     Function to count the number of times each value occurs in a column
@@ -132,6 +77,72 @@ def count_unique(df, column):
     """
     counts = df[column].value_counts().to_dict()
     return(counts)
+
+def create_trackers_table(trackers, extensions):
+    """
+    Function to create a table summarising the network trackers
+    :parma trackers: Dataframe containing a summary of the trackers
+    :parma extensions: Dataframe containing the extensions
+    :return: Latex table containing trackers
+    """
+
+    table = ""
+
+    table += """\\begin{table}[h]
+    \\centering
+    \\begin{tabular}{lcccc} \\toprule
+        Extension & Total & \\# Detected & \\# only detected by & \\# only detected\\\\
+         & Detected & by both & Network Analysis & by VV8 \\\\ \\midrule
+"""
+    for index, row in trackers.iterrows():
+        mask = extensions['name'] == row['name']
+        # Get value from url based on the filter
+        url = extensions.loc[mask, 'url'].iloc[0]
+
+        table += f"""       \\href{{{url}}}{{{row['name'].replace("&", "\\&")}}} & {row['total']} & {row['both']} & {row['vv8']} & {row['network']} \\\\ \n"""
+
+    table += """        \\bottomrule
+    \\end{tabular}
+    \\caption{Number of trackers per extension}
+    \\label{tab:trackers}
+\\end{table}
+    """
+    return table
+
+def create_trackers_dataframe(extensions):
+    """
+    Function to create a dataframe summarising the network trackers
+    :parma extensions: Dataframe containing the extensions
+    :return: Dataframe containing a summary of the tracks found
+    """
+    vv8 = pd.read_sql_query("SELECT extension, url FROM vv8Trackers", conn)
+    network = pd.read_sql_query("SELECT extension, url FROM requests WHERE is_tracker = 1", conn)
+
+    totals = pd.DataFrame(columns=['name','total','both','vv8','network'])
+    for extension in extensions['file']:
+        if (vv8['extension'].isin([extension]).any()) or (network['extension'].isin([extension]).any()):
+            mask = vv8['extension'] == extension
+            vv8_this_extension = vv8[mask]
+
+            mask = network['extension'] == extension
+            network_this_extension = network[mask]
+
+            both = network_this_extension['url'].isin(vv8_this_extension['url']).sum()
+            just_network = len(network_this_extension) - both
+            just_vv8 = len(vv8_this_extension) -both
+            total = just_network + just_vv8 + both
+
+            # Boolean mask for filtering
+            mask = extensions['file'] == extension
+            # Get value from name based on the filter
+            name = extensions.loc[mask, 'name'].iloc[0]
+
+            #Create row
+            row = {'name': name, 'total':total, 'both': both, 'vv8': just_vv8, 'network':just_network}
+            totals.loc[len(totals)] = row
+
+    #Sort dataframe
+    return totals.sort_values(by='total', ascending=False)
 
 #Get args
 parser = argparse.ArgumentParser("Create tables and graphs based on sqlite file")
@@ -161,7 +172,9 @@ extensions = pd.read_sql_query("SELECT * FROM extensions", conn)
 hosts = pd.read_sql_query("SELECT * FROM hosts", conn)
 permissions = pd.read_sql_query("SELECT * FROM permissions", conn)
 
-print(create_trackers_table(count_unique(pd.read_sql_query("SELECT * FROM vv8Trackers", conn), "extension"), count_unique(pd.read_sql_query("SELECT * FROM requests WHERE is_tracker = 1", conn), "extension"), extensions))
+trackers = create_trackers_dataframe(extensions)
+print(create_trackers_table(trackers, extensions))
+
 quit()
 
 
