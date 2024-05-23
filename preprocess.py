@@ -1,5 +1,5 @@
 from pathlib import Path
-import os, argparse, sys, csv, zipfile, jsbeautifier, cssbeautifier, _thread, subprocess
+import os, argparse, sys, csv, zipfile, _thread, subprocess
 from tqdm import tqdm
 from time import sleep
 from common import *

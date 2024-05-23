@@ -11,16 +11,17 @@ def create_table_from_list(conn, column_names):
     create_table_stmt = f"""CREATE TABLE IF NOT EXISTS permissions (
         name text,
         {', '.join([f'`{col}` INTEGER' for col in column_names])}
+        ,manifest INTERGER
     );"""
     cursor = conn.cursor()
     # Execute CREATE TABLE statement
     cursor.execute(create_table_stmt)
 
-def insert_list(conn, name, column_names, list_data):
+def insert_list(conn, name, column_names, list_data, manifest):
     cursor = conn.cursor()
     # Insert data into the table using parameterized queries for security
-    insert_stmt = f"""INSERT INTO permissions (name,{', '.join([f'`{col}`' for col in column_names])}) VALUES (?,{', '.join(['?'] * len(column_names))});"""
-    cursor.execute(insert_stmt, [name]+list_data)
+    insert_stmt = f"""INSERT INTO permissions (name,{', '.join([f'`{col}`' for col in column_names])}, manifest) VALUES (?,{', '.join(['?'] * len(column_names))}, ?);"""
+    cursor.execute(insert_stmt, [name]+list_data+[manifest])
 
     # Save changes to the database
     conn.commit()
@@ -138,18 +139,20 @@ with tqdm(total=no_files) as pbar:
                     hosts[h] += 1
                 else:
                     hosts[h] = 1
-
-        for h in optional_host_permissions:
-            if h != 'None':
-                if h in optional_hosts:
-                    optional_hosts[h] += 1
-                else:
-                    optional_hosts[h] = 1
+        try:
+            for h in optional_host_permissions:
+                if h != 'None':
+                    if h in optional_hosts:
+                        optional_hosts[h] += 1
+                    else:
+                        optional_hosts[h] = 1
+        except:
+            optional_hosts = {}
 
         if verbose:
             tqdm.write(str(permission_list))
 
-        insert_list(conn, filename, perms, permission_list)
+        insert_list(conn, filename, perms, permission_list, manifest_version)
 
         pbar.update(1)
 
