@@ -5,17 +5,19 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 ## Installation
 
 ### Pre-requisites
-* NPM
+* Node
+  * NPM
     * [js-beautify](https://www.npmjs.com/package/js-beautify) installed globally
     * [esprima](https://github.com/jquery/esprima)
 
-* Python
-```bash 
-python -m pip install -r requirements.txt
- ```
+* Python 3.12
+  * Pip
+  * Requirements from requirements.txt, see:
+  ```bash 
+  python -m pip install -r requirements.txt
+  ```
 
 * Other
-  * RE2 
   * Docker 
   
 ## Basics
@@ -56,14 +58,10 @@ python3 get_manifest.py <file.sqlite>
 ```
 
 ## 5. Running crawl
-We can run a crawl of a test site using all extensions, doing this records the HTML of the page and the network traffic while visiting it.
+We can run a crawl of a test site using all extensions, doing this records the HTML of the page, the network traffic while visiting it using [mitmproxy](https://mitmproxy.org/), [VisualV8](https://github.com/wspr-ncsu/visiblev8/tree/master) logs, the accessibility tree, WAVE and Google Lighthouse results.
 ```bash
-# Create and rundocker containers
-docker-compose -f docker/docker-compose.yaml up --build -d
-# Get a bash terminal in container
-docker exec -it docker-automation-1 /bin/bash
-# Run crawl
-node crawl.mjs </src/extensions/folder/file.sqlite> <time in ms>
+# Run the crawl
+python3 run_crawl.py <file.sqlite> <time in seconds> 
 ```
 
 ## 7. Post Processing

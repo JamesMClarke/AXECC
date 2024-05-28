@@ -136,19 +136,9 @@ function getExtensions() {
                         }
                     });
 
-                    const createTableRequests = `CREATE TABLE IF NOT EXISTS requests (
-requestId INTEGER PRIMARY KEY AUTOINCREMENT,
-extension TEXT,
-url TEXT,
-requestHeaders TEXT,
-responseHeaders TEXT,
-status TEXT,
-interceptionId TEXT,
-requestIdNew TEXT,
-timestamp TEXT,
-method TEXT,
-redirectChain TEXT,
-responseText TEXT
+                    const createTableRequests = `CREATE TABLE IF NOT EXISTS current_ext (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+extension TEXT
 )`;
                  db.run(createTableRequests, (err) => {
                         if (verbose) {
@@ -220,78 +210,19 @@ function addCookies(extension, cookie) {
     });
 }
 
-async function addRequest(extension, request, response , redirectChain) {
+//TODO Need to create a way to make sure this gets set
+
+async function updateCurrentExt(extension) {
     const db = new sqlite3.Database(sqlFile, (err) => {
         if (err) {
             reject(err);
         } else {
-            /*
-            try {
+        const query = `UPDATE current_ext SET extension = ? where id = 0`;
 
-            let chain = request.redirectChain()
-            let redirectChain = []
-
-            for (var index = 0; index < chain.length; index ++) {
-                redirectChain.push({
-                    "url" : chain[index].url(),
-                    "interceptionId" : chain[index]._interceptionId,
-                    "requestId" : chain[index]._requestId
-                })
-            }
-
-            //let responseStatus = await response.status()
-            let responseStatus;
-            try {
-               responseStatus = response.status()
-            }catch (error) {
-  // Code to handle the error
-  console.error("An error occurred:", error.message);
-}
-            let responseText;
-
-            if (responseStatus == 200) {
-                try {
-                    //responseText = await response.text()
-                    responseText = response.text()
-                }
-                catch{
-                    responseText = ""
-                }
-            }
-
-            const requestHeaders = JSON.stringify(request.headers());
-            let responseHeaders;
-            try {
-                responseHeaders = JSON.stringify(response.headers());
-            }  catch {
-                console.log("Error response status");
-            }
-            redirectChain = JSON.stringify(redirectChain);
-
-            const query = `INSERT INTO requests (extension, url, requestHeaders, responseHeaders, status, interceptionId, requestId, timestamp, method, redirectChain, responseText) VALUES (?, ?, ?, ?,?, ?, ?,?,?,?,?)`;
-
-            db.run(query, [extension, request.url(), requestHeaders, responseHeaders, responseStatus, request._interceptionId, request._requestId, request.timestamp, request.method(), redirectChain, responseText == ""], (err) => {
-                if (verbose) {
-                    if (err) {
-                        console.error(err.message);
-                        console.log("Error");
-                    } else {
-                        console.log(`Request ${request.url()} added to database.`);
-                    }
-                }
-            });
-            */
-
-        const query = `INSERT INTO requests (extension, url) VALUES (?, ?)`;
-
-            db.run(query, [extension, request.url()], (err) => {
-                if (verbose) {
-                    if (err) {
-                        console.error(err.message);
-                        console.log("Error");
-                    } else {
-                        console.log(`Request ${request.url()} added to database.`);
-                    }
+            db.run(query, [extension], (err) => {
+                if (err) {
+                    console.error(err.message);
+                    console.log("Error");
                 }
             });
 
@@ -307,6 +238,36 @@ async function addRequest(extension, request, response , redirectChain) {
         }
     });
 }
+
+async function setCurrentExt(extension) {
+    const db = new sqlite3.Database(sqlFile, (err) => {
+        if (err) {
+            reject(err);
+        } else {
+        const query = `INSERT INTO current_ext (id, extension) VALUES (0, ?)`;
+
+            db.run(query, [extension], (err) => {
+                if (err) {
+                    console.error(err.message);
+                    console.log("Error");
+                    //updateCurrentExt(extension);
+                }
+            });
+
+        db.close((err) => {
+            if (verbose) {
+                if (err) {
+                    console.error(err.message);
+                } else {
+                    console.log('Closed the database connection.');
+                }
+            }
+        });
+        }
+    });
+}
+
+
 function addCrawl(extension, success, lighthouseScore, wave) {
     //console.log(lighthouseScore)
     const db = new sqlite3.Database(sqlFile, (err) => {
@@ -345,6 +306,7 @@ async function crawl(extension) {
     create_dir(extension_output);
     let browser;
     if (extension === 'baseline'){
+        setCurrentExt(extension);
         browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
             headless: true,
@@ -355,6 +317,7 @@ async function crawl(extension) {
             //, 'screenshot'
         });
     }else{
+        updateCurrentExt(extension);
         let lastDotIndex = extension.lastIndexOf('.');
         let fileNameWithoutExtension = extension.substring(0, lastDotIndex);
     let extPath = path.join(extensionDir, fileNameWithoutExtension);
@@ -370,24 +333,13 @@ async function crawl(extension) {
             //'screenshot',
         });
     }
+    //Time delay before starting to crawl
+    const time_delay = 200
 
+    await delay(time_delay);
 
     const page = await browser.newPage();
 
-    await page.setRequestInterception(true);
-
-    page.on('request', (request) => {
-        request["timestamp"] = (new Date()).getTime()
-        request.continue()
-    })
-
-
-    page.on('requestfinished', async (request) => {
-        const response = await request.response();
-        const responseHeaders = response.headers();
-        await addRequest(extension, request, response);
-        })
-    // Navigate to any website to focus on the address bar
     await page.goto(url);
 
     await delay(vistTime);
@@ -435,7 +387,6 @@ async function crawl(extension) {
 
     const accessibilitySnapshot = await page.accessibility.snapshot();
     await saveJsonToFile(accessibilitySnapshot,  path.join(extension_output, 'accessibilitySnapshot.json'));
-
 
     await browser.close();
 

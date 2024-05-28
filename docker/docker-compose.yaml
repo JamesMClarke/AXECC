@@ -4,7 +4,7 @@ services:
         context: ..
         dockerfile: docker/automation
     volumes:
-      - /Users/jc02788/Documents/accessibility_extensions:/src  # Mount the host directory
+      - ..:/src  # Mount the host directory
     entrypoint: /bin/bash  # Override default entrypoint
     tty: true  # Allocate pseudo-TTY (same as -it)
     networks:
@@ -29,9 +29,12 @@ services:
       - "8081:8081"
     volumes:
       - ~/.mitmproxy:/home/mitmproxy/.mitmproxy
+      - ..:/src
     networks:
         - automation-net
-    command: ["mitmweb","--web-host", "0.0.0.0"]
+    tty: true
+    entrypoint: /bin/bash
+    command: []
 
 networks:
     automation-net: {}
