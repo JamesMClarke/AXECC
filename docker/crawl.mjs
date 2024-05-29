@@ -253,6 +253,7 @@ async function setCurrentExt(extension) {
                     //updateCurrentExt(extension);
                 }
             });
+        //TODO Need to add a check that the extensions has been set
 
         db.close((err) => {
             if (verbose) {
@@ -306,7 +307,7 @@ async function crawl(extension) {
     create_dir(extension_output);
     let browser;
     if (extension === 'baseline'){
-        setCurrentExt(extension);
+        await setCurrentExt(extension);
         browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
             headless: true,
@@ -317,7 +318,7 @@ async function crawl(extension) {
             //, 'screenshot'
         });
     }else{
-        updateCurrentExt(extension);
+        await updateCurrentExt(extension);
         let lastDotIndex = extension.lastIndexOf('.');
         let fileNameWithoutExtension = extension.substring(0, lastDotIndex);
     let extPath = path.join(extensionDir, fileNameWithoutExtension);
