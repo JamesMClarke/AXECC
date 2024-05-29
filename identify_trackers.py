@@ -148,7 +148,7 @@ conn.commit()
 conn.close()
 with tqdm(total=len(rows)) as pbar:
   for row in rows:
-    url = row[2]
+    url = row[1]
     id = row[0]
     should_block = False
     category = ""
