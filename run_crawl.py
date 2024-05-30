@@ -21,7 +21,7 @@ def run_crawl(relative_path, visit_time):
     command1 = "docker exec -it docker-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
     #print(command1)
     #command2 = "docker exec -it docker-automation-1 node crawl.mjs -v  /src/extensions/locker/locker.sqlite 3000"
-    command2 = "docker exec -it docker-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*100)
+    command2 = "docker exec -it docker-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
     #print(command2)
 
     # Run commands in parallel using Popen

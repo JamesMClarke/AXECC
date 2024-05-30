@@ -335,7 +335,7 @@ async function crawl(extension) {
         });
     }
     //Time delay before starting to crawl
-    const time_delay = 200
+    const time_delay = 2000
 
     await delay(time_delay);
 
