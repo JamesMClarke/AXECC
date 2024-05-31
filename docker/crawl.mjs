@@ -12,6 +12,7 @@ import {
 import fs from 'fs-extra';
 
 import config from './custom-config.mjs';
+import async from 'async';
 
 // add stealth plugin and use defaults (all evasion techniques)
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
@@ -210,22 +211,44 @@ function addCookies(extension, cookie) {
     });
 }
 
-//TODO Need to create a way to make sure this gets set
+async function checkCurrentExt(extension) {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(sqlFile, (err) => {
+      if (err) {
+        return reject(new Error(`Error connecting to database: ${err}`));
+      }
+
+      const query = "SELECT * FROM current_ext WHERE extension = ?";
+      db.all(query, [extension], (err, rows) => {
+        db.close((closeErr) => { // Close connection even on errors
+          if (closeErr) {
+            console.error('Error closing database connection:', closeErr);
+          }
+
+          if (err) {
+            return false;
+          }
+
+          resolve(rows.length > 0); // Check if at least one row exists
+        });
+      });
+    });
+  });
+}
 
 async function updateCurrentExt(extension) {
     const db = new sqlite3.Database(sqlFile, (err) => {
         if (err) {
             reject(err);
         } else {
-        const query = `UPDATE current_ext SET extension = ? where id = 0`;
+        const query = `UPDATE current_ext SET extension = ? where id = 1`;
 
-            db.run(query, [extension], (err) => {
-                if (err) {
-                    console.error(err.message);
-                    console.log("Error");
-                }
-            });
-
+                db.run(query, [extension], (err) => {
+                    if (err) {
+                        console.error(err.message);
+                        console.log("Error");
+                    }
+                });
         db.close((err) => {
             if (verbose) {
                 if (err) {
@@ -240,32 +263,35 @@ async function updateCurrentExt(extension) {
 }
 
 async function setCurrentExt(extension) {
-    const db = new sqlite3.Database(sqlFile, (err) => {
-        if (err) {
-            reject(err);
-        } else {
-        const query = `INSERT INTO current_ext (id, extension) VALUES (0, ?)`;
+  const db = new sqlite3.Database(sqlFile);
+    let attempt = 1;
 
-            db.run(query, [extension], (err) => {
-                if (err) {
-                    console.error(err.message);
-                    console.log("Error");
-                    //updateCurrentExt(extension);
-                }
-            });
-        //TODO Need to add a check that the extensions has been set
+  const retryOpts = {
+    times: 3, // Retry maximum 3 times
+    interval: (attempt) => Math.min(2000, 2 * attempt * 1000), // Exponential backoff with a 2s cap
+  };
 
-        db.close((err) => {
-            if (verbose) {
-                if (err) {
-                    console.error(err.message);
-                } else {
-                    console.log('Closed the database connection.');
-                }
-            }
-        });
-        }
+  async.retry(retryOpts, (callback) => {
+    const query = `INSERT INTO current_ext (extension) VALUES (?);`;
+    db.run(query, [extension], (err) => {
+      if (err) {
+        console.error(err.message);
+        console.log(`Error setting extension, retrying... (attempt: ${retryOpts.times - attempt})`);
+        return callback(err);
+      }
+      callback(); // No error, operation successful
     });
+  }, (err) => {
+    if (err) {
+      console.error('Failed to set current extension after retries');
+      // Handle overall failure here (e.g., log error or throw an exception)
+    } else {
+      console.log('Extension set successfully');
+    }
+    db.close((err) => {
+      // Handle database close error if needed
+    });
+  });
 }
 
 
@@ -307,7 +333,11 @@ async function crawl(extension) {
     create_dir(extension_output);
     let browser;
     if (extension === 'baseline'){
-        await setCurrentExt(extension);
+        //while (checkCurrentExt(extension)){
+        //    console.log("Setting current ext to:");
+        //    console.log(extension);
+            await setCurrentExt(extension);
+        //}
         browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
             headless: true,
@@ -318,7 +348,11 @@ async function crawl(extension) {
             //, 'screenshot'
         });
     }else{
-        await updateCurrentExt(extension);
+        //while (checkCurrentExt){
+        //    console.log("Setting current ext to:");
+        //    console.log(extension);
+            await updateCurrentExt(extension);
+        //}
         let lastDotIndex = extension.lastIndexOf('.');
         let fileNameWithoutExtension = extension.substring(0, lastDotIndex);
     let extPath = path.join(extensionDir, fileNameWithoutExtension);

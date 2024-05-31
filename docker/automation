@@ -3,7 +3,7 @@ WORKDIR /usr/app
 COPY docker/crawl.mjs .
 COPY docker/custom-config.mjs .
 COPY docker/wave.min.js .
-RUN npm i puppeteer sqlite3 commander puppeteer-extra-plugin-stealth puppeteer-extra fs-extra lighthouse
+RUN npm i puppeteer sqlite3 commander puppeteer-extra-plugin-stealth puppeteer-extra fs-extra lighthouse async
 #USER root
 #RUN mkdir /usr/local/share/ca-certificates/extra
 #ADD docker/mitmproxy.crt /usr/local/share/ca-certificates/extra/
