@@ -21,9 +21,9 @@ def add_request(request, conn):
     Function to add a single request to a sqlite file
     """
     ext = get_ext(conn)
-    sql = """INSERT INTO requests (url, extension) VALUES (?,?);"""
+    sql = """INSERT INTO requests (url, extension, port, method, http_version, headers, content, trailers, timestamp_start, timestamp_end) VALUES (?,?,?,?,?,?,?,?,?,?);"""
     cur = conn.cursor()
-    cur.execute(sql,(request.host+request.path, ext))
+    cur.execute(sql,(request.host+request.path, ext, request.port, request.method, request.http_version, str(request.headers), request.content, str(request.trailers), request.timestamp_start, request.timestamp_end))
     conn.commit()
 
 def create_table(conn):
@@ -33,7 +33,15 @@ def create_table(conn):
     sql = """ CREATE TABLE IF NOT EXISTS requests (
 requestID INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT,
-    extension TEXT
+    extension TEXT,
+    port INTEGER,
+    method TEXT,
+    http_version TEXT,
+    headers TEXT,
+    content TEXT,
+    trailers TEXT,
+    timestamp_start TEXT,
+    timestamp_end TEXT
     );"""
     c = conn.cursor()
     c.execute(sql)
