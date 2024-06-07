@@ -331,12 +331,15 @@ function addCrawl(extension, success, lighthouseScore, wave) {
 async function crawl(extension) {
     let extension_output = path.join(outputDir, extension)
     create_dir(extension_output);
+    const time_delay = 2000
     let browser;
     if (extension === 'baseline'){
         //while (checkCurrentExt(extension)){
         //    console.log("Setting current ext to:");
         //    console.log(extension);
             await setCurrentExt(extension);
+        await delay(time_delay);
+
         //}
         browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
@@ -352,6 +355,8 @@ async function crawl(extension) {
         //    console.log("Setting current ext to:");
         //    console.log(extension);
             await updateCurrentExt(extension);
+        await delay(time_delay);
+
         //}
         let lastDotIndex = extension.lastIndexOf('.');
         let fileNameWithoutExtension = extension.substring(0, lastDotIndex);
@@ -369,9 +374,7 @@ async function crawl(extension) {
         });
     }
     //Time delay before starting to crawl
-    const time_delay = 2000
 
-    await delay(time_delay);
 
     const page = await browser.newPage();
 
@@ -386,15 +389,10 @@ async function crawl(extension) {
 
 
     var allStorage = await getAllLocalStorage(page);
-    await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
     allStorage = await getAllSessionStorage(page);
-    await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
 
     const cookies = await page.cookies();
 
-    for (let i = 0; i < cookies.length; i++) {
-        addCookies(extension, cookies[i]);
-    }
 
     // Get accessibility evaluation
     const {lhr} = await lighthouse(url, undefined, config, page);
@@ -418,13 +416,18 @@ async function crawl(extension) {
     await page.addScriptTag({ content: waveScript });
     const waveStats = JSON.parse(responseObject[0]); // Access the first response
     // console.log(waveStats);
-    addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
 
     const accessibilitySnapshot = await page.accessibility.snapshot();
-    await saveJsonToFile(accessibilitySnapshot,  path.join(extension_output, 'accessibilitySnapshot.json'));
 
     await browser.close();
+    await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
+    await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
+    addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
+    await saveJsonToFile(accessibilitySnapshot,  path.join(extension_output, 'accessibilitySnapshot.json'));
 
+    for (let i = 0; i < cookies.length; i++) {
+        addCookies(extension, cookies[i]);
+    }
     moveFiles("vv8", extension_output);
     fs.rmSync(path.join(currentDir, 'tmp'), {
         recursive: true,

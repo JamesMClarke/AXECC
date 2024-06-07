@@ -4,6 +4,9 @@ Run 'mitmproxy -s log_to_file.py'
 """
 import asyncio, logging, datetime, time, os, sys, threading, sqlite3
 from mitmproxy.script import concurrent
+from datetime import datetime, timezone, timedelta
+
+
 
 sqlite_file = sys.argv[-1]
 
@@ -55,4 +58,10 @@ async def request(flow):
     #logger.info(f"Request: {flow.request.host}{flow.request.path}")
     #print(f"Request: {flow.request.host}{flow.request.path}")
     add_request(flow.request, conn)
-    #logger.info(f"start  request: {flow.request.host}{flow.request.path}")
+    # Convert the timestamp to a datetime object in UTC
+    #utc_time = datetime.fromtimestamp(flow.request.timestamp_start, tz=timezone.utc)
+
+    # BST is UTC+1, so we create a timezone for BST
+    #bst_time = utc_time + bst_offset
+    #bst_offset = timedelta(hours=1)
+    #print(bst_time)
