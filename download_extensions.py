@@ -99,7 +99,7 @@ with tqdm(total=no_extensions) as pbar:
         name_box = soup.find('h1', attrs={'class': 'Pa2dE'})
         extension_name = name_box.text.strip()
 
-        producer_box = soup.find('div', attrs={'class':'C2WXF'})
+        producer_box = soup.find('div', attrs={'class':'Fm8Cnb'})
         try:
             try:
                 producer_name, producer_company, producer_address = producer_box.stripped_strings
@@ -107,12 +107,13 @@ with tqdm(total=no_extensions) as pbar:
                 producer_name, producer_address = producer_box.stripped_strings
                 producer_company = producer_name
         except:
-            try:
-                # Find the element with class 'Qt4bne rlxkgb'
-                li_elements = soup.find('li', class_='Qt4bne rlxkgb')
-                producer_name = li_elements.text.replace("Offered by", "")
-            except:
-                producer_name = 'None'
+            #try:
+            # Find the element with class 'Qt4bne rlxkgb'
+            #    producer_box = soup.find('a',attrs={'class':'cJI8ee'})
+            #    producer_name = producer_box.stripped_strings
+            #    print(producer_name)
+            #except:
+            producer_name = 'None'
 
             producer_company = 'None'
             producer_address = 'None'
