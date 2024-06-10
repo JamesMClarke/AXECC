@@ -56,6 +56,7 @@ all_files = os.path.join(current_dir,"extensions")
 category_folder = os.path.join(all_files, urls_name)
 create_directory(category_folder)
 download_folder = os.path.join(category_folder,"crx_files")
+store_page_folder = os.path.join(category_folder, "store_page")
 
 db_file = os.path.join(category_folder,urls_name+".sqlite")
 conn = create_connection(db_file)
@@ -73,6 +74,7 @@ else:
 create_table(conn)
 
 create_directory(download_folder)
+create_directory(store_page_folder)
 
 
 #Get list of extensions
@@ -95,9 +97,11 @@ with tqdm(total=no_extensions) as pbar:
 
         # parse the html using beautiful soup and store in variable `soup`
         soup = BeautifulSoup(page, 'html.parser')
-
-        name_box = soup.find('h1', attrs={'class': 'Pa2dE'})
-        extension_name = name_box.text.strip()
+        try:
+            name_box = soup.find('h1', attrs={'class': 'Pa2dE'})
+            extension_name = name_box.text.strip()
+        except:
+            extension_name = "Error"
 
         producer_box = soup.find('div', attrs={'class':'Fm8Cnb'})
         try:
@@ -169,9 +173,17 @@ with tqdm(total=no_extensions) as pbar:
 
                     urllib.request.urlretrieve(download_url, os.path.join(download_folder,file+'_'+str(i)+".crx"))
                     file_name  = os.path.join(file+'_'+str(i)+".crx")
+                    f = open(os.path.join(store_page_folder, file+'_'+str(i)+".html"),'x')
+                    f.write(str(soup))
+                    f.close()
+
                 else:
                     urllib.request.urlretrieve(download_url, os.path.join(download_folder,file+".crx"))
                     file_name = file+".crx"
+                    f = open(os.path.join(store_page_folder, file+".html"),'x')
+                    f.write(str(soup))
+                    f.close()
+
                 break
             except Exception as e:
                 if attempt == 4:  # This is the last attempt
