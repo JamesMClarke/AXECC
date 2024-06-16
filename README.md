@@ -11,12 +11,9 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
     * [esprima](https://github.com/jquery/esprima)
 
 * Python 3.12
-  * Pip
-  * Requirements from requirements.txt, see:
-  ```bash 
-  python -m pip install -r requirements.txt
-  ```
-
+  * Conda
+  * environment.yaml
+  
 * Other
   * Docker 
   
