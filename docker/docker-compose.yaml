@@ -2,7 +2,7 @@ services:
   automation:
     build:
         context: ..
-        dockerfile: docker/automation
+        dockerfile: docker/automation #Dockerfile which is an augumented version of Chrome with Pupeetter
     volumes:
       - ..:/src  # Mount the host directory
     entrypoint: /bin/bash  # Override default entrypoint
@@ -16,17 +16,17 @@ services:
   web_server:
     build:
         context: ..
-        dockerfile: docker/web_server
-    ports:
-        - "80:80"
+        dockerfile: docker/web_server #Apachie web server
+    #ports:
+    #    - "80:80"
     networks:
         - automation-net
 
   mitmproxy:
-    image: mitmproxy/mitmproxy
-    ports:
-      - "8080:8080"
-      - "8081:8081"
+    image: mitmproxy/mitmproxy #Proxy to record network traffic
+    #ports:
+    #  - "8080:8080"
+    #  - "8081:8081"
     volumes:
       - ~/.mitmproxy:/home/mitmproxy/.mitmproxy
       - ..:/src

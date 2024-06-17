@@ -10,12 +10,13 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
     * [js-beautify](https://www.npmjs.com/package/js-beautify) installed globally
     * [esprima](https://github.com/jquery/esprima)
 
-* Python 3.12
+* Python 3.11.5 
   * Conda
   * environment.yaml
   
 * Other
-  * Docker 
+  * Docker
+  * docker-compose
   
 ## Basics
 All files will are saved to the ```extensions\<name_of_txt>``` folder.
