@@ -9,7 +9,9 @@ def create_containers():
     Function to run the logic for creating containers
     """
     print("Creating docker containers")
-    os.system("docker-compose -f docker/docker-compose.yaml up --build -d")
+    command1 = "sudo docker compose -f docker/docker-compose.yaml up --build -d"
+    process1 = subprocess.Popen(command1.split(), shell=False)
+    process1.wait()
 
 def run_crawl(relative_path, visit_time):
     """
@@ -18,10 +20,10 @@ def run_crawl(relative_path, visit_time):
     print("Running crawl")
 
     #command1 = "docker exec -it docker-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src/extensions/locker/locker.sqlite"
-    command1 = "docker exec -it docker-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
+    command1 = "sudo docker exec -it docker-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
     #print(command1)
     #command2 = "docker exec -it docker-automation-1 node crawl.mjs -v  /src/extensions/locker/locker.sqlite 3000"
-    command2 = "docker exec -it docker-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
+    command2 = "sudo docker exec -it docker-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
     #print(command2)
 
     # Run commands in parallel using Popen
@@ -37,9 +39,9 @@ def cleanup():
     """
     print("Stopping and removing docker containers")
 
-    command1 = "docker stop docker-web_server-1"
-    command2 = "docker stop docker-mitmproxy-1"
-    command3 = "docker stop docker-automation-1"
+    command1 = "sudo docker stop docker-web_server-1"
+    command2 = "sudo docker stop docker-mitmproxy-1"
+    command3 = "sudo docker stop docker-automation-1"
 
     process1 = subprocess.Popen(command1.split(), shell=False)
     process2 = subprocess.Popen(command2.split(), shell=False)
@@ -49,9 +51,9 @@ def cleanup():
     process2.wait()
     process3.wait()
 
-    command1 = "docker rm docker-web_server-1"
-    command2 = "docker rm docker-mitmproxy-1"
-    command3 = "docker rm docker-automation-1"
+    command1 = "sudo docker rm docker-web_server-1"
+    command2 = "sudo docker rm docker-mitmproxy-1"
+    command3 = "sudo docker rm docker-automation-1"
 
     process1 = subprocess.Popen(command1.split(), shell=False)
     process2 = subprocess.Popen(command2.split(), shell=False)
