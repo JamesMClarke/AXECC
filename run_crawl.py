@@ -3,7 +3,6 @@ from tqdm import tqdm
 from time import sleep
 from common import *
 import difflib
-from getpass import getpass
 
 def create_containers():
     """
@@ -20,8 +19,7 @@ def create_containers():
         exit()
 
 
-    process = subprocess.Popen(command1.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    process.wait()
+    os.system(command1)
 
 def run_crawl(relative_path, visit_time):
     """
@@ -29,15 +27,19 @@ def run_crawl(relative_path, visit_time):
     """
     print("Running crawl")
 
-    command1 = prefix + f"docker exec -it {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
 
+    if platform == 'darwin':
+        command1 = prefix + f"docker exec -it {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
+        command2 = prefix + f"docker exec -it {sql_name}-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
 
-    command2 = prefix + f"docker exec -it {sql_name}-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
+        process1 = subprocess.Popen(command1.split(), shell=False)  # Split command into arguments
+        process2 = subprocess.Popen(command2.split(), shell=False)
+    else:
+        command1 = prefix + f"docker exec -i {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
+        command2 = prefix + f"docker exec -i {sql_name}-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
 
-
-    # Run commands in parallel using Popen
-    process1 = subprocess.Popen(command1.split(), shell=False)  # Split command into arguments
-    process2 = subprocess.Popen(command2.split(), shell=False)
+        process1 = subprocess.Popen(command1, shell=True)  # Split command into arguments
+        process2 = subprocess.Popen(command2, shell=True)
 
     # Wait for crawl to finish
     process2.wait()
@@ -52,9 +54,14 @@ def cleanup():
     command2 = prefix + f"docker stop {sql_name}-mitmproxy-1"
     command3 = prefix + f"docker stop {sql_name}-automation-1"
 
-    process1 = subprocess.Popen(command1.split(), shell=False)
-    process2 = subprocess.Popen(command2.split(), shell=False)
-    process3 = subprocess.Popen(command3.split(), shell=False)
+    if platform == 'darwin':
+        process1 = subprocess.Popen(command1.split(), shell=False)
+        process2 = subprocess.Popen(command2.split(), shell=False)
+        process3 = subprocess.Popen(command3.split(), shell=False)
+    else:
+        process1 = subprocess.Popen(command1, shell=True)
+        process2 = subprocess.Popen(command2, shell=True)
+        process3 = subprocess.Popen(command3, shell=True)
 
     process1.wait()
     process2.wait()
@@ -64,9 +71,14 @@ def cleanup():
     command2 = prefix + f"docker rm {sql_name}-mitmproxy-1"
     command3 = prefix + f"docker rm {sql_name}-automation-1"
 
-    process1 = subprocess.Popen(command1.split(), shell=False)
-    process2 = subprocess.Popen(command2.split(), shell=False)
-    process3 = subprocess.Popen(command3.split(), shell=False)
+    if platform == 'darwin':
+        process1 = subprocess.Popen(command1.split(), shell=False)
+        process2 = subprocess.Popen(command2.split(), shell=False)
+        process3 = subprocess.Popen(command3.split(), shell=False)
+    else:
+        process1 = subprocess.Popen(command1, shell=True)
+        process2 = subprocess.Popen(command2, shell=True)
+        process3 = subprocess.Popen(command3, shell=True)
 
     process1.wait()
     process2.wait()
@@ -76,10 +88,12 @@ def cleanup():
 parser = argparse.ArgumentParser("Run a crawl based on an sql file")
 parser.add_argument("sql", help="Input the name of the sql file to be processed.", type=str)
 parser.add_argument("vist_time", help="Input the length of time to vist the honeypage for in Secconds", type=int)
+parser.add_argument('pwd', help="Input your sudo password", type=str)
 parser.add_argument("-v",'--verbose', action='store_true')
 args = parser.parse_args()
 sql_file = args.sql
 vist_time = args.vist_time
+pwd = args.pwd
 verbose = args.verbose
 
 current_dir = os.getcwd()
@@ -99,8 +113,7 @@ relative_path = sql_file.replace(cwd,"")
 platform = sys.platform
 prefix = ""
 if platform == "linux" or platform == "linux2":
-    pwd = getpass(prompt="Please enter your sudo password")
-    prefix = f"sudo -S {pwd}"
+    prefix = f'echo {pwd} | sudo -S '
 
 create_containers()
 sleep(2)
