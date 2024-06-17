@@ -3,6 +3,7 @@ from tqdm import tqdm
 from time import sleep
 from common import *
 import difflib
+from getpass import getpass
 
 def create_containers():
     """
@@ -13,7 +14,7 @@ def create_containers():
     if platform == "darwin":
         command1 = f"docker-compose -f docker/docker-compose.yaml -p {sql_name} up --build -d "
     elif platform == "linux" or platform == 'linux2':
-        command1 = f"sudo docker compose -f docker/docker-compose.yaml -p {sql_name} up --build -d"
+        command1 = prefix + f"docker compose -f docker/docker-compose.yaml -p {sql_name} up --build -d"
     else:
         print("System not supported")
         exit()
@@ -98,8 +99,8 @@ relative_path = sql_file.replace(cwd,"")
 platform = sys.platform
 prefix = ""
 if platform == "linux" or platform == "linux2":
-    prefix = "sudo "
-
+    pwd = getpass(prompt="Please enter your sudo password")
+    prefix = f"sudo -S {pwd}"
 
 create_containers()
 sleep(2)
