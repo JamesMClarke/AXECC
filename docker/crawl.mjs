@@ -374,16 +374,14 @@ async function crawl(extension) {
         });
     }
     //Time delay before starting to crawl
-
+    try {
 
     const page = await browser.newPage();
-
     await page.goto(url);
-
     await delay(vistTime);
 
     // Screenshot and get html of page
-    await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
+    // await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
     const htmlContent = await page.content();
     await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
 
@@ -392,10 +390,21 @@ async function crawl(extension) {
     allStorage = await getAllSessionStorage(page);
 
     const cookies = await page.cookies();
-
-
+    let lhr;
     // Get accessibility evaluation
-    const {lhr} = await lighthouse(url, undefined, config, page);
+    try {
+        ({lhr} = await lighthouse(url, undefined, config, page));
+    } catch (error) {
+    // Handling the error
+    console.error("An error occurred:", error);
+    lhr = {
+  categories: {
+    accessibility: {
+      score: -1
+    }
+  }
+};
+}
     //console.log(lhr.categories.accessibility.score);
     const responseObject = {};
     page.on('console', async (msg) => {
@@ -419,7 +428,6 @@ async function crawl(extension) {
 
     const accessibilitySnapshot = await page.accessibility.snapshot();
 
-    await browser.close();
     await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
     await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
     addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
@@ -429,11 +437,13 @@ async function crawl(extension) {
         addCookies(extension, cookies[i]);
     }
     moveFiles("vv8", extension_output);
-    fs.rmSync(path.join(currentDir, 'tmp'), {
-        recursive: true,
-        force: true
-    });
+    } catch (error){
+        console.log(error);
+    } finally{
+    await browser.close();
 }
+
+    }
 
 async function runCrawls(extensions) {
     fs.copyFile('/artifacts/idldata.json', path.join(outputDir, 'idldata.json'), (err) => {
@@ -445,16 +455,26 @@ async function runCrawls(extensions) {
     });
 
     await crawl('baseline');
+    fs.rmSync(path.join(currentDir, 'tmp'), {
+        recursive: true,
+        force: true
+    });
+
   for (const extension of extensions) {
     // Call crawl function directly without await (it's already async)
       try{
           if (extensions.file != 'None'){
               await crawl(extension.file);
-          }
-      } catch{
-          console.log("Error");
-      }
+              fs.rmSync(path.join(currentDir, 'tmp'), {
+        recursive: true,
+        force: true
+    });
+
+          }} catch (error) {
+              // Handling the error
+    console.error("An error occurred with the crawl:", error);
   }
+}
 }
 
 

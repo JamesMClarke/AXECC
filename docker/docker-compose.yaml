@@ -23,7 +23,7 @@ services:
         - automation-net
 
   mitmproxy:
-    image: mitmproxy/mitmproxy #Proxy to record network traffic
+    image: docker.io/mitmproxy/mitmproxy #Proxy to record network traffic
     #ports:
     #  - "8080:8080"
     #  - "8081:8081"

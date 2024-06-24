@@ -1,4 +1,4 @@
-FROM visiblev8/vv8-base:latest
+FROM docker.io/visiblev8/vv8-base:latest
 WORKDIR /usr/app
 COPY docker/crawl.mjs .
 COPY docker/custom-config.mjs .
