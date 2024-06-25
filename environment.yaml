@@ -1,15 +1,24 @@
-name: base
+name: accessibility_extension_env
 channels:
   - defaults
 dependencies:
-  - python=3.12
-  - conda
-  - setuptools
+  - pandas
+  - tqdm
+  - scikit-learn
+  - matplotlib
+  - pytorch::pytorch
+  - torchaudio
+  - torchvision
+  - jupyterlab
+  - re2
   - pip
-  - wheel
-  - conda-content-trust
-  - conda-libmamba-solver
-  - menuinst
-  - python.app
-  - anaconda-anon-usage
-prefix: /Users/jc02788/miniconda3
+  - seaborn
+  - plotly
+  - xgboost
+  - keras
+  - python=3.11
+  - tensorflow
+  - shap
+  - tldextract
+  - python-graphviz
+prefix: /Users/jc02788/miniconda3/envs/accessibility_extension_env
