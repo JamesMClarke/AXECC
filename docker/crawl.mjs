@@ -1,6 +1,4 @@
-import puppeteer from 'puppeteer-extra';
 import path from "path";
-//import fs from "fs";
 import sqlite3 from "sqlite3";
 import {
     program
@@ -13,11 +11,14 @@ import fs from 'fs-extra';
 
 import config from './custom-config.mjs';
 import async from 'async';
-
-// add stealth plugin and use defaults (all evasion techniques)
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import lighthouse from 'lighthouse';
-puppeteer.use(StealthPlugin());
+
+// Just use normal puppeteer
+import puppeteer from 'puppeteer';
+// Or add stealth plugin and use defaults (all evasion techniques)
+// import puppeteer from 'puppeteer-extra';
+// import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+// puppeteer.use(StealthPlugin());
 
 
 async function getAllLocalStorage(page) {
@@ -60,10 +61,8 @@ async function saveJsonToFile(myObject, filename) {
     });
 }
 
-function delay(time) {
-    return new Promise(function(resolve) {
-        setTimeout(resolve, time)
-    });
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function create_dir(directoryPath) {
@@ -81,23 +80,23 @@ function create_dir(directoryPath) {
 }
 
 function moveFiles(pattern, destDir) {
-  const files = fs.readdirSync(currentDir).filter(file => file.startsWith(pattern));
+    const files = fs.readdirSync(currentDir).filter(file => file.startsWith(pattern));
 
-  for (const file of files) {
-    const oldPath = `${currentDir}/${file}`;
-    const newPath = `${destDir}/${file}`;
+    for (const file of files) {
+        const oldPath = `${currentDir}/${file}`;
+        const newPath = `${destDir}/${file}`;
 
-    try {
-      fs.move(oldPath, newPath);
-      if (verbose) {
-        console.log(`Successfully moved ${file} to ${destDir}`);
-      }
-    } catch (err) {
-      if (verbose) {
-        console.error(`Error moving ${file}: ${err.message}`);
-      }
+        try {
+            fs.move(oldPath, newPath);
+            if (verbose) {
+                console.log(`Successfully moved ${file} to ${destDir}`);
+            }
+        } catch (err) {
+            if (verbose) {
+                console.error(`Error moving ${file}: ${err.message}`);
+            }
+        }
     }
-  }
 }
 
 function getExtensions() {
@@ -141,7 +140,7 @@ function getExtensions() {
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 extension TEXT
 )`;
-                 db.run(createTableRequests, (err) => {
+                    db.run(createTableRequests, (err) => {
                         if (verbose) {
                             if (err) {
                                 console.error(err.message);
@@ -151,7 +150,7 @@ extension TEXT
                         }
                     });
 
-       const createTableCrawl = `CREATE TABLE IF NOT EXISTS crawl (
+                    const createTableCrawl = `CREATE TABLE IF NOT EXISTS crawl (
 crawlId INTEGER PRIMARY KEY AUTOINCREMENT,
 extension TEXT,
 success INT,
@@ -161,9 +160,10 @@ waveContrastErrors INT,
 waveAlerts INT,
 waveFeatures INT,
 waveStructuralElements INT,
-waveAria INT
+waveAria INT,
+time FLOAT
 )`;
-                 db.run(createTableCrawl, (err) => {
+                    db.run(createTableCrawl, (err) => {
                         if (verbose) {
                             if (err) {
                                 console.error(err.message);
@@ -198,42 +198,42 @@ function addCookies(extension, cookie) {
                 }
             });
 
-        db.close((err) => {
-            if (verbose) {
-                if (err) {
-                    console.error(err.message);
-                } else {
-                    console.log('Closed the database connection.');
+            db.close((err) => {
+                if (verbose) {
+                    if (err) {
+                        console.error(err.message);
+                    } else {
+                        console.log('Closed the database connection.');
+                    }
                 }
-            }
-        });
+            });
         }
     });
 }
 
 async function checkCurrentExt(extension) {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(sqlFile, (err) => {
-      if (err) {
-        return reject(new Error(`Error connecting to database: ${err}`));
-      }
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database(sqlFile, (err) => {
+            if (err) {
+                return reject(new Error(`Error connecting to database: ${err}`));
+            }
 
-      const query = "SELECT * FROM current_ext WHERE extension = ?";
-      db.all(query, [extension], (err, rows) => {
-        db.close((closeErr) => { // Close connection even on errors
-          if (closeErr) {
-            console.error('Error closing database connection:', closeErr);
-          }
+            const query = "SELECT * FROM current_ext WHERE extension = ?";
+            db.all(query, [extension], (err, rows) => {
+                db.close((closeErr) => { // Close connection even on errors
+                    if (closeErr) {
+                        console.error('Error closing database connection:', closeErr);
+                    }
 
-          if (err) {
-            return false;
-          }
+                    if (err) {
+                        return false;
+                    }
 
-          resolve(rows.length > 0); // Check if at least one row exists
+                    resolve(rows.length > 0); // Check if at least one row exists
+                });
+            });
         });
-      });
     });
-  });
 }
 
 async function updateCurrentExt(extension) {
@@ -241,69 +241,68 @@ async function updateCurrentExt(extension) {
         if (err) {
             reject(err);
         } else {
-        const query = `UPDATE current_ext SET extension = ? where id = 1`;
+            const query = `UPDATE current_ext SET extension = ? where id = 1`;
 
-                db.run(query, [extension], (err) => {
-                    if (err) {
-                        console.error(err.message);
-                        console.log("Error");
-                    }
-                });
-        db.close((err) => {
-            if (verbose) {
+            db.run(query, [extension], (err) => {
                 if (err) {
                     console.error(err.message);
-                } else {
-                    console.log('Closed the database connection.');
+                    console.log("Error");
                 }
-            }
-        });
+            });
+            db.close((err) => {
+                if (verbose) {
+                    if (err) {
+                        console.error(err.message);
+                    } else {
+                        console.log('Closed the database connection.');
+                    }
+                }
+            });
         }
     });
 }
 
 async function setCurrentExt(extension) {
-  const db = new sqlite3.Database(sqlFile);
+    const db = new sqlite3.Database(sqlFile);
     let attempt = 1;
 
-  const retryOpts = {
-    times: 3, // Retry maximum 3 times
-    interval: (attempt) => Math.min(2000, 2 * attempt * 1000), // Exponential backoff with a 2s cap
-  };
+    const retryOpts = {
+        times: 3, // Retry maximum 3 times
+        interval: (attempt) => Math.min(2000, 2 * attempt * 1000), // Exponential backoff with a 2s cap
+    };
 
-  async.retry(retryOpts, (callback) => {
-    const query = `INSERT INTO current_ext (extension) VALUES (?);`;
-    db.run(query, [extension], (err) => {
-      if (err) {
-        console.error(err.message);
-        console.log(`Error setting extension, retrying... (attempt: ${retryOpts.times - attempt})`);
-        return callback(err);
-      }
-      callback(); // No error, operation successful
+    async.retry(retryOpts, (callback) => {
+        const query = `INSERT INTO current_ext (extension) VALUES (?);`;
+        db.run(query, [extension], (err) => {
+            if (err) {
+                console.error(err.message);
+                console.log(`Error setting extension, retrying... (attempt: ${retryOpts.times - attempt})`);
+                return callback(err);
+            }
+            callback(); // No error, operation successful
+        });
+    }, (err) => {
+        if (err) {
+            console.error('Failed to set current extension after retries');
+            // Handle overall failure here (e.g., log error or throw an exception)
+        } else {
+            console.log('Extension set successfully');
+        }
+        db.close((err) => {
+            // Handle database close error if needed
+        });
     });
-  }, (err) => {
-    if (err) {
-      console.error('Failed to set current extension after retries');
-      // Handle overall failure here (e.g., log error or throw an exception)
-    } else {
-      console.log('Extension set successfully');
-    }
-    db.close((err) => {
-      // Handle database close error if needed
-    });
-  });
 }
 
 
-function addCrawl(extension, success, lighthouseScore, wave) {
-    //console.log(lighthouseScore)
+function addCrawl(extension, success, lighthouseScore, wave, crawlTime) {
     const db = new sqlite3.Database(sqlFile, (err) => {
         if (err) {
             reject(err);
         } else {
-            const query = `INSERT INTO crawl (extension, success, lighthouse, waveErrors,waveContrastErrors,waveAlerts, waveFeatures, waveStructuralElements, waveAria ) VALUES (?,?,?,?,?,?,?,?,?)`;
+            const query = `INSERT INTO crawl (extension, success, lighthouse, waveErrors,waveContrastErrors,waveAlerts, waveFeatures, waveStructuralElements, waveAria, time ) VALUES (?,?,?,?,?,?,?,?,?,?)`;
 
-            db.run(query, [extension, success, lighthouseScore, wave.statistics.error, wave.statistics.contrast,  wave.statistics.alert, wave.statistics.feature, wave.statistics.structure, wave.statistics.aria], (err) => {
+            db.run(query, [extension, success, lighthouseScore, wave.statistics.error, wave.statistics.contrast, wave.statistics.alert, wave.statistics.feature, wave.statistics.structure, wave.statistics.aria, crawlTime], (err) => {
                 if (verbose) {
                     if (err) {
                         console.error(err.message);
@@ -314,33 +313,66 @@ function addCrawl(extension, success, lighthouseScore, wave) {
                 }
             });
 
-        db.close((err) => {
-            if (verbose) {
-                if (err) {
-                    console.error(err.message);
-                } else {
-                    console.log('Closed the database connection.');
+            db.close((err) => {
+                if (verbose) {
+                    if (err) {
+                        console.error(err.message);
+                    } else {
+                        console.log('Closed the database connection.');
+                    }
                 }
-            }
-        });
+            });
         }
     });
 }
 
+async function gotoPageWithRetry(page, url, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            await page.goto(url, {
+                waitUntil: 'networkidle2'
+            });
+            return;
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.log(`Retrying... (${i + 1}/${retries})`);
+        }
+    }
+}
+
+async function runLighthouse(url, config, page) {
+    try {
+        const {
+            lhr
+        } = await lighthouse(url, undefined, config, page);
+        return lhr;
+    } catch (error) {
+        // Handling different types of Lighthouse errors
+        if (error.message.includes('PROTOCOL_TIMEOUT')) {
+            console.error("Protocol timeout error:", error);
+        } else if (error.message.includes('Target closed')) {
+            console.error("Target closed error:", error);
+        } else {
+            console.error("An unknown error occurred:", error);
+        }
+        return {
+            categories: {
+                accessibility: {
+                    score: -1
+                }
+            }
+        };
+    }
+}
 
 async function crawl(extension) {
     let extension_output = path.join(outputDir, extension)
     create_dir(extension_output);
-    const time_delay = 2000
+    const time_delay = 2000;
     let browser;
-    if (extension === 'baseline'){
-        //while (checkCurrentExt(extension)){
-        //    console.log("Setting current ext to:");
-        //    console.log(extension);
-            await setCurrentExt(extension);
+    if (extension === 'baseline') {
+        await setCurrentExt(extension);
         await delay(time_delay);
-
-        //}
         browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
             headless: true,
@@ -348,102 +380,129 @@ async function crawl(extension) {
             ignoreDefaultArgs: ['--enable-automation'],
             userDataDir: './tmp',
             args: ['--no-sandbox']
-            //, 'screenshot'
         });
-    }else{
-        //while (checkCurrentExt){
-        //    console.log("Setting current ext to:");
-        //    console.log(extension);
-            await updateCurrentExt(extension);
+    } else {
+        await updateCurrentExt(extension);
         await delay(time_delay);
-
-        //}
         let lastDotIndex = extension.lastIndexOf('.');
         let fileNameWithoutExtension = extension.substring(0, lastDotIndex);
-    let extPath = path.join(extensionDir, fileNameWithoutExtension);
-        console.log("Extension Path: "+extPath);
-            browser = await puppeteer.launch({
+        let extPath = path.join(extensionDir, fileNameWithoutExtension);
+        console.log("Extension Path: " + extPath);
+        browser = await puppeteer.launch({
             executablePath: '/opt/chromium.org/chromium/chrome',
-            //executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             headless: true,
             ignoreHTTPSErrors: true,
             ignoreDefaultArgs: ['--enable-automation'],
             userDataDir: './tmp',
-            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`]
-            //'screenshot',
+            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`, '--headless', '--disable-gpu', '--disable-dev-shm-usage']
         });
     }
     //Time delay before starting to crawl
     try {
+        const crawlStart = performance.now();
+        const page = await browser.newPage();
+        await gotoPageWithRetry(page, url);
+        //Allow page to load
+        await delay(5000);
+        const delayFinished = performance.now();
 
-    const page = await browser.newPage();
-    await page.goto(url);
-    await delay(vistTime);
+        const lighthouseStart = performance.now();
+        await page.bringToFront()
 
-    // Screenshot and get html of page
-    // await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
-    const htmlContent = await page.content();
-    await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
+        //Run lighthouse
+        const lhr = await runLighthouse(url, config, page);
 
+        const lighthouseEnd = performance.now();
 
-    var allStorage = await getAllLocalStorage(page);
-    allStorage = await getAllSessionStorage(page);
+        const waveStart = performance.now();
+        //console.log(lhr.categories.accessibility.score);
+        const responseObject = {};
+        page.on('console', async (msg) => {
+            const msgArgs = msg.args();
+            for (let i = 0; i < msgArgs.length; ++i) {
+                const responseValue = await msgArgs[i].jsonValue();
 
-    const cookies = await page.cookies();
-    let lhr;
-    // Get accessibility evaluation
-    try {
-        ({lhr} = await lighthouse(url, undefined, config, page));
-    } catch (error) {
-    // Handling the error
-    console.error("An error occurred:", error);
-    lhr = {
-  categories: {
-    accessibility: {
-      score: -1
-    }
-  }
-};
-}
-    //console.log(lhr.categories.accessibility.score);
-    const responseObject = {};
-    page.on('console', async (msg) => {
-        const msgArgs = msg.args();
-        for (let i = 0; i < msgArgs.length; ++i) {
-           const responseValue = await msgArgs[i].jsonValue();
-
-            // Conditionally store responses based on message type (optional)
-            if (msg.type() === 'log') { // If you want to store only log messages
-                responseObject[i] = responseValue;
-            } else {
-            // Handle other message types if needed
+                // Conditionally store responses based on message type (optional)
+                if (msg.type() === 'log') { // If you want to store only log messages
+                    responseObject[i] = responseValue;
+                } else {
+                    // Handle other message types if needed
+                }
             }
+        });
+        // Use page.addScriptTag to add the script to the page
+        const waveScript = fs.readFileSync(path.join(process.cwd(), 'wave.min.js'), 'utf8');
+        await page.addScriptTag({
+            content: waveScript
+        });
+        const waveStats = JSON.parse(responseObject[0]); // Access the first response
+        const waveEnd = performance.now();
+
+
+        // Work out if it needs extra delay
+        const currentVistTime = performance.now() - crawlStart;
+        if (currentVistTime < vistTime) {
+            await delay(vistTime - currentVistTime);
+            console.log(`The delay should be ${vistTime - currentVistTime}`);
         }
-    });
-     // Use page.addScriptTag to add the script to the page
-    const waveScript = fs.readFileSync(path.join(process.cwd(), 'wave.min.js'), 'utf8');
-    await page.addScriptTag({ content: waveScript });
-    const waveStats = JSON.parse(responseObject[0]); // Access the first response
-    // console.log(waveStats);
 
-    const accessibilitySnapshot = await page.accessibility.snapshot();
+        // Screenshot and get html of page this caused issues and wasn't needed
+        // await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
+        const htmlStart = performance.now();
+        const htmlContent = await page.content();
+        await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
+        const htmlFinish = performance.now();
 
-    await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
-    await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
-    addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats);
-    await saveJsonToFile(accessibilitySnapshot,  path.join(extension_output, 'accessibilitySnapshot.json'));
+        const storageStart = performance.now();
+        var allStorage = await getAllLocalStorage(page);
+        allStorage += await getAllSessionStorage(page);
+        const cookies = await page.cookies();
+        const storageEnd = performance.now();
 
-    for (let i = 0; i < cookies.length; i++) {
-        addCookies(extension, cookies[i]);
-    }
-    moveFiles("vv8", extension_output);
-    } catch (error){
+
+        const accessibiliyStart = performance.now();
+        const accessibilitySnapshot = await page.accessibility.snapshot();
+        const accessibilityEnd = performance.now();
+
+        const savingStart = performance.now();
+        await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
+        await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
+        await saveJsonToFile(accessibilitySnapshot, path.join(extension_output, 'accessibilitySnapshot.json'));
+        for (let i = 0; i < cookies.length; i++) {
+            addCookies(extension, cookies[i]);
+        }
+        moveFiles("vv8", extension_output);
+        const savingEnd = performance.now();
+        const crawlEnd = performance.now();
+
+        console.log(`The crawl took ${crawlEnd - crawlStart} ms`);
+        console.log(`It the delay lasted ${delayFinished - crawlStart} ms`);
+        console.log(`Saving the html took ${htmlFinish - htmlStart} ms`);
+        console.log(`Saving cookies and storage took ${storageEnd - storageStart} ms`);
+        console.log(`Lighthouse took ${lighthouseEnd - lighthouseStart} ms`);
+        console.log(`WAVE took ${waveEnd - waveStart} ms`);
+        console.log(`Saving took ${savingEnd - savingStart} ms`);
+        const crawlLength = crawlEnd - crawlStart;
+        addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats, crawlLength);
+    } catch (error) {
         console.log(error);
-    } finally{
-    await browser.close();
-}
 
+        let wave = {
+            statistics: {
+                error: 0,
+                contrast: 0,
+                alert: 0,
+                feature: 0,
+                structure: 0,
+                aria: 0
+            }
+        };
+        addCrawl(extension, 0, -1, wave, 0);
+    } finally {
+        await browser.close();
     }
+
+}
 
 async function runCrawls(extensions) {
     fs.copyFile('/artifacts/idldata.json', path.join(outputDir, 'idldata.json'), (err) => {
@@ -460,21 +519,21 @@ async function runCrawls(extensions) {
         force: true
     });
 
-  for (const extension of extensions) {
-    // Call crawl function directly without await (it's already async)
-      try{
-          if (extensions.file != 'None'){
-              await crawl(extension.file);
-              fs.rmSync(path.join(currentDir, 'tmp'), {
-        recursive: true,
-        force: true
-    });
-
-          }} catch (error) {
-              // Handling the error
-    console.error("An error occurred with the crawl:", error);
-  }
-}
+    for (const extension of extensions) {
+        // Call crawl function directly without await (it's already async)
+        try {
+            if (extensions.file != 'None') {
+                await crawl(extension.file);
+                fs.rmSync(path.join(currentDir, 'tmp'), {
+                    recursive: true,
+                    force: true
+                });
+            }
+        } catch (error) {
+            // Handling the error
+            console.error("An error occurred with the crawl:", error);
+        }
+    }
 }
 
 
