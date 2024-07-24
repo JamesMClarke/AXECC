@@ -17,7 +17,16 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 * Other
   * Docker
   * docker-compose
-  
+  * p7zip
+
+* Post-Processor
+  * Rust
+  * Go
+
+Cloning including submodules:
+```bash
+git clone --recurse-submodules git@github.com:JamesMClarke/accessibility_extensions.git
+```
 ## Basics
 All files will are saved to the ```extensions\<name_of_txt>``` folder.
 
@@ -64,6 +73,14 @@ python3 run_crawl.py <file.sqlite> <time in seconds>
 
 ## 7. Post Processing
 We can now run our post-processor, we rely on [VisableV8's post processor](https://github.com/wspr-ncsu/visiblev8/tree/master/post-processor) to format VisableV8's results
+### 7.1 Building VV8's post processor
+First we need to build VV8's post processor
+```bash
+cd /post-processor/VisibleV8/post-processor
+make
+cd /post-processor
+cp /VisibleV8/post-processor/artifacts/* .
+```
 
 ```bash
 # Change directory to post process
