@@ -5,7 +5,7 @@ https://github.com/epitron/mitm-adblock/blob/master/adblock.py
 from adblockparser import AdblockRules, AdblockRule
 from glob import glob
 import urllib.request
-import csv, argparse, os, sys, time, requests, json, sqlite3, subprocess
+import csv, argparse, os, sys, time, requests, json, sqlite3, subprocess, shutil
 from tqdm import tqdm
 import pandas as pd
 
@@ -25,6 +25,9 @@ def get_vv8_postprocessor():
   files = common.select_column(conn, 'file')
   #Set dir of crawl
   crawl_dir = os.path.join(os.path.dirname(sqlite_filepath), 'crawl')
+
+  #Copy idldata.json from crawls for vv8 post processor
+  shutil.copyfile(os.path.join(os.path.dirname(sqlite_filepath),'crawl', 'idldata.json'), os.path.join(cwd,'idldata.json'))
 
   #Create table for trackers identified by VV8
   sql = """ CREATE TABLE IF NOT EXISTS vv8Trackers (
@@ -185,7 +188,6 @@ def download_and_load_lists():
           print(f"Error loading list {list}")
 
       print("Done loading lists, reading to check requests")
-
     return rule_list
 
 
@@ -198,6 +200,7 @@ def identify_network_trackers():
     rule_list = download_and_load_lists()
 
     total = 0
+
 
     #Get all requests
     rows = common.select_all(conn, "requests")
@@ -224,7 +227,6 @@ def identify_network_trackers():
         #Write results back to db
         row = {'name':name,'url':url,'network_tracker':should_block,'network_tracker_type':category}
         trackers.loc[len(trackers)] = row
-        #TODO Need to add result to a dataframe
         pbar.update(1)
 
 
