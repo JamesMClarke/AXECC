@@ -370,6 +370,7 @@ async function crawl(extension) {
     create_dir(extension_output);
     const time_delay = 2000;
     let browser;
+    try {
     if (extension === 'baseline') {
         await setCurrentExt(extension);
         await delay(time_delay);
@@ -394,11 +395,11 @@ async function crawl(extension) {
             ignoreHTTPSErrors: true,
             ignoreDefaultArgs: ['--enable-automation'],
             userDataDir: './tmp',
-            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`, '--headless', '--disable-gpu', '--disable-dev-shm-usage']
+            logLevel: 'info',
+            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`,'--disable-dev-shm-usage','--disable-gpu','--ignore-certificate-errors']
         });
     }
     //Time delay before starting to crawl
-    try {
         const crawlStart = performance.now();
         const page = await browser.newPage();
         await gotoPageWithRetry(page, url);
@@ -499,7 +500,11 @@ async function crawl(extension) {
         };
         addCrawl(extension, 0, -1, wave, 0);
     } finally {
-        await browser.close();
+        try {
+            await browser.close();
+        } catch {
+            console.log("Error closing the browser");
+        }
     }
 
 }
