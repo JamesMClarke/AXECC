@@ -29,14 +29,14 @@ def run_crawl(relative_path, visit_time):
 
 
     if platform == 'darwin':
-        command1 = prefix + f"docker exec -it {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
-        command2 = prefix + f"docker exec -it {sql_name}-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
+        command1 = prefix + f"docker exec -it {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src/extensions"+relative_path
+        command2 = prefix + f"docker exec -it {sql_name}-automation-1 node crawl.mjs /src/extensions"+relative_path +" "+ str(visit_time*1000)
 
         process1 = subprocess.Popen(command1.split(), shell=False)  # Split command into arguments
         process2 = subprocess.Popen(command2.split(), shell=False)
     else:
-        command1 = prefix + f"docker exec -i {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src"+relative_path
-        command2 = prefix + f"docker exec -i {sql_name}-automation-1 node crawl.mjs /src"+relative_path +" "+ str(visit_time*1000)
+        command1 = prefix + f"docker exec -i {sql_name}-mitmproxy-1 mitmdump -q -s /src/docker/log_traffic.py /src/extensions"+relative_path
+        command2 = prefix + f"docker exec -i {sql_name}-automation-1 node crawl.mjs /src/extensions"+relative_path +" "+ str(visit_time*1000)
 
         process1 = subprocess.Popen(command1, shell=True)  # Split command into arguments
         process2 = subprocess.Popen(command2, shell=True)
@@ -96,11 +96,9 @@ vist_time = args.vist_time
 pwd = args.pwd
 verbose = args.verbose
 
-current_dir = os.getcwd()
 sql_name = os.path.basename(sql_file).split(".")[0]
 
 #Check if csv file exists
-sql_file = os.path.join(current_dir,sql_file)
 if(os.path.isfile(sql_file)):
     print("File %s exists, starting crawl \n" %(sql_name))
     print("The program will visit the page for %s seconds \n" %(str(vist_time)))
@@ -109,7 +107,8 @@ else:
     sys.exit()
 
 cwd = os.getcwd()
-relative_path = sql_file.replace(cwd,"")
+#relative_path = sql_file.replace(cwd,"")
+relative_path = sql_file.split('extensions')[-1]
 platform = sys.platform
 prefix = ""
 if platform == "linux" or platform == "linux2":
