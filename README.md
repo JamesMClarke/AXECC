@@ -5,11 +5,6 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 ## Installation
 
 ### Pre-requisites
-* Node
-  * NPM
-    * [js-beautify](https://www.npmjs.com/package/js-beautify) installed globally
-    * [esprima](https://github.com/jquery/esprima)
-
 * Python 3.11.5 
   * Conda
   * environment.yaml
@@ -19,7 +14,6 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 * Other
   * Docker
   * docker-compose
-  * p7zip
 
 * Post-Processor
   * Rust
