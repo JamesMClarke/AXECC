@@ -6,13 +6,13 @@ import { program } from 'commander';
 var category = false
 
  async function clickLoadMoreButton(page) {
-   //if (!category){
-  const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf'); // More specific selector
+  if (category){
+    const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf');
     await button.click();
-   //} else {
-    // const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf'); // More specific selector
-    // await button.click();
-   //}
+  } else {
+    const button = await page.waitForSelector('button.mUIrbf-LgbsSe.mUIrbf-LgbsSe-OWXEXe-dgl2Hf.Zg3Y9'); // More specific selector
+    await button.click();
+  }
  }
 
 function create_dir(directoryPath){
