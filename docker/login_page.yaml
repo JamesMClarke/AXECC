@@ -1,0 +1,40 @@
+services:
+  automation:
+    build:
+        context: ..
+        dockerfile: docker/automation #Dockerfile which is an augumented version of Chrome with Pupeetter
+    volumes:
+      - ..:/src  # Mount the host directory
+    entrypoint: /bin/bash  # Override default entrypoint
+    tty: true  # Allocate pseudo-TTY (same as -it)
+    networks:
+        - automation-net
+    environment:
+        http_proxy: "http://mitmproxy:8080"
+        https_proxy: "http://mitmproxy:8080"
+
+  web_server:
+    build:
+        context: ..
+        dockerfile: docker/web_server #Apachie web server
+    #ports:
+    #    - "80:80"
+    networks:
+        - automation-net
+
+  mitmproxy:
+    image: docker.io/mitmproxy/mitmproxy #Proxy to record network traffic
+    #ports:
+    #  - "8080:8080"
+    #  - "8081:8081"
+    volumes:
+      - ~/.mitmproxy:/home/mitmproxy/.mitmproxy
+      - ..:/src
+    networks:
+        - automation-net
+    tty: true
+    entrypoint: /bin/bash
+    command: []
+
+networks:
+    automation-net: {}

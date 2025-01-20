@@ -441,33 +441,43 @@ async function crawl(extension) {
 
 
         // Work out if it needs extra delay
-        const currentVistTime = performance.now() - crawlStart;
-        if (currentVistTime < vistTime) {
-            await delay(vistTime - currentVistTime);
-            console.log(`The delay should be ${vistTime - currentVistTime}`);
+        const currentVisitTime = performance.now() - crawlStart;
+        if (currentVisitTime < visitTime) {
+            await delay(visitTime - currentVisitTime);
+            console.log(`The delay should be ${visitTime - currentVisitTime}`);
         }
 
-        // Screenshot and get html of page this caused issues and wasn't needed
-        // await page.screenshot({ path: path.join(extension_output,"screenshot.jpeg"), type: 'jpeg', fullPage: true });
+        // Screenshot and get html of page
+        await page.screenshot({ 
+            path: path.join(extension_output, "screenshot.png"), 
+            type: 'png', 
+            fullPage: true
+        });
+        
         const htmlStart = performance.now();
         const htmlContent = await page.content();
         await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
         const htmlFinish = performance.now();
 
         const storageStart = performance.now();
-        var allStorage = await getAllLocalStorage(page);
-        allStorage += await getAllSessionStorage(page);
+        const allStorage = await getAllLocalStorage(page);
+        const sessionStorageData = await getAllSessionStorage(page);
+
+        // Serialize the objects to JSON strings
+        const serializedLocalStorage = JSON.stringify(allStorage);
+        const serializedSessionStorage = JSON.stringify(sessionStorageData);
+
+        // Combine the serialized data if needed
+        //const combinedStorage = serializedLocalStorage + serializedSessionStorage;
+
         const cookies = await page.cookies();
         const storageEnd = performance.now();
 
-
-        const accessibiliyStart = performance.now();
         const accessibilitySnapshot = await page.accessibility.snapshot();
-        const accessibilityEnd = performance.now();
 
         const savingStart = performance.now();
-        await saveJsonToFile(allStorage, path.join(extension_output, 'localstorage.json'));
-        await saveJsonToFile(allStorage, path.join(extension_output, 'sessionStorage.json'));
+        await saveJsonToFile(serializedLocalStorage, path.join(extension_output, 'localstorage.json'));
+        await saveJsonToFile(serializedSessionStorage, path.join(extension_output, 'sessionStorage.json'));
         await saveJsonToFile(accessibilitySnapshot, path.join(extension_output, 'accessibilitySnapshot.json'));
         for (let i = 0; i < cookies.length; i++) {
             addCookies(extension, cookies[i]);
@@ -543,29 +553,45 @@ async function runCrawls(extensions) {
 
 
 program
-    .version('0.0.1') // Set your program version
-    .description('Visit webpage using extension and process data');
-
-program
+    .version('0.0.1')
+    .description('Visit webpage using extension and process data')
     .argument('<sql>', 'Input sqlite file to be processed')
-    .argument('<time>', 'Time to visit site with each extension (mili-seconds)', parseInt) // Parse int
-    .option('-v, --verbose', 'Output verbose information');
+    .argument('<time>', 'Time to visit site with each extension (mili-seconds)', parseInt)
+    .option('-v, --verbose', 'Output verbose information')
+    .option('--login_page <customString>', 'Use the inaccessible login page as the honeypage')
+    .option('--wordpress <customString>', 'Use the wordpress page as the honeypage with a custom string');
 
 program.parse();
 
-const sqlFile = program.args[0];
-const vistTime = program.args[1];
-
+// Validate mutually exclusive options
 const options = program.opts();
+if (options.login_page && options.wordpress) {
+    console.error('Error: --login_page and --wordpress cannot be used together');
+    process.exit(1);
+}
+
+// Set default page type if none specified
+const pageType = options.login_page ? 'login-page' : 
+                 options.wordpress ? 'wordpress' : 
+                 'login-page'; // default to login-page
+
+// Update the URL based on page type
+const url = pageType === 'login-page' 
+    ? 'http://web_server' 
+    : 'http://web_server' + options.wordpress.replace(/^'|'$/g, '');
+
+const sqlFile = program.args[0];
+const visitTime = program.args[1];
+
 const verbose = program.verbose || options.verbose || options.v;
 
 // Your program logic using csvFile, visitTime, and verbose
 
 console.log(`Processing SQLite file: ${sqlFile}`);
-console.log(`Visit time per extension: ${vistTime} ms`);
+console.log(`Visit time per extension: ${visitTime} ms`);
 console.log(`Verbose mode: ${verbose}`);
+console.log(`Visiting the following url: ${url}`)
 
-const url = 'http://web_server';
 const currentDir = process.cwd();
 const extensionDir = path.join(path.dirname(sqlFile), 'preprocessed');
 const outputDir = path.join(path.dirname(sqlFile), 'crawl');

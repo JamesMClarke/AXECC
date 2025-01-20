@@ -1,0 +1,78 @@
+version: "3" 
+services:
+  db:
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: MySQLRootPassword
+      MYSQL_DATABASE: MySQLDatabaseName
+      MYSQL_USER: MySQLUsername
+      MYSQL_PASSWORD: MySQLUserPassword
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+        - automation-net
+
+  web_server:
+    depends_on:
+      - db
+    image: wordpress:latest
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: MySQLUsername
+      WORDPRESS_DB_PASSWORD: MySQLUserPassword
+      WORDPRESS_DB_NAME: MySQLDatabaseName
+    volumes:
+      - "./wordpress:/var/www/html"
+    networks:
+        - automation-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8084:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: MySQLUsername
+      PMA_PASSWORD: MySQLUserPassword
+    networks:
+        - automation-net
+
+  automation:
+    build:
+        context: ..
+        dockerfile: docker/automation #Dockerfile which is an augumented version of Chrome with Pupeetter
+    volumes:
+      - ..:/src  # Mount the host directory
+    entrypoint: /bin/bash  # Override default entrypoint
+    tty: true  # Allocate pseudo-TTY (same as -it)
+    networks:
+        - automation-net
+    environment:
+        http_proxy: "http://mitmproxy:8080"
+        https_proxy: "http://mitmproxy:8080"
+
+  mitmproxy:
+    image: docker.io/mitmproxy/mitmproxy #Proxy to record network traffic
+    #ports:
+    #  - "8080:8080"
+    #  - "8081:8081"
+    volumes:
+      - ~/.mitmproxy:/home/mitmproxy/.mitmproxy
+      - ..:/src
+    networks:
+        - automation-net
+    tty: true
+    entrypoint: /bin/bash
+    command: []
+
+networks:
+    automation-net: {}
+
+
+volumes:
+  mysql: {}
