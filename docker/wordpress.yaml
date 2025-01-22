@@ -18,8 +18,8 @@ services:
       - db
     image: wordpress:latest
     restart: always
-    ports:
-      - "80:80"
+    #ports:
+      #- "80:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: MySQLUsername
@@ -30,17 +30,17 @@ services:
     networks:
         - automation-net
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    restart: always
-    ports:
-      - "8084:80"
-    environment:
-      PMA_HOST: db
-      PMA_USER: MySQLUsername
-      PMA_PASSWORD: MySQLUserPassword
-    networks:
-        - automation-net
+  #phpmyadmin:
+  #  image: phpmyadmin/phpmyadmin
+  #  restart: always
+    #ports:
+    #  - "8084:80"
+  #  environment:
+  #    PMA_HOST: db
+  #    PMA_USER: MySQLUsername
+  #    PMA_PASSWORD: MySQLUserPassword
+  #  networks:
+  #      - automation-net
 
   automation:
     build:
