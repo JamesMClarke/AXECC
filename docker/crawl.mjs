@@ -448,53 +448,71 @@ async function crawl(extension) {
         }
 
         // Screenshot and get html of page
-        await page.screenshot({ 
-            path: path.join(extension_output, "screenshot.png"), 
-            type: 'png', 
-            fullPage: true
-        });
+        //await page.screenshot({ 
+        //    path: path.join(extension_output, "screenshot.png"), 
+        //    type: 'png', 
+        //    fullPage: true
+        //});
         
         const htmlStart = performance.now();
         const htmlContent = await page.content();
         await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
         const htmlFinish = performance.now();
 
-        const storageStart = performance.now();
-        const allStorage = await getAllLocalStorage(page);
-        const sessionStorageData = await getAllSessionStorage(page);
+        let localStorage;
+        try {
+            localStorage = await getAllLocalStorage(page);
+        } catch (error) {
+            console.error('Failed to get localStorage:', error);
+            localStorage = {};
+        }
+        const serializedLocalStorage = JSON.stringify(localStorage);
+        try {
+            await saveJsonToFile(serializedLocalStorage, path.join(extension_output, 'localstorage.json'));
+        } catch (error) {
+            console.error('Failed to save localStorage to file:', error);
+        }
+        
+        let sessionStorage;
+        try {
+            sessionStorage = await getAllSessionStorage(page);
+        } catch (error) {
+            console.error('Failed to get sessionStorage:', error);
+            sessionStorage = {};
+        }
+        const serializedSessionStorage = JSON.stringify(sessionStorage);
+        try {
+            await saveJsonToFile(serializedSessionStorage, path.join(extension_output, 'sessionStorage.json'));
+        } catch (error) {
+            console.error('Failed to save sessionStorage to file:', error);
+        }
 
-        // Serialize the objects to JSON strings
-        const serializedLocalStorage = JSON.stringify(allStorage);
-        const serializedSessionStorage = JSON.stringify(sessionStorageData);
-
-        // Combine the serialized data if needed
-        //const combinedStorage = serializedLocalStorage + serializedSessionStorage;
-
-        const cookies = await page.cookies();
-        const storageEnd = performance.now();
+        let cookies;
+        try {
+            cookies = await page.cookies();
+            for (let i = 0; i < cookies.length; i++) {
+                addCookies(extension, cookies[i]);
+            }
+        } catch (error) {
+            console.error('Failed to get cookies:', error);
+            cookies = [];
+        }
 
         const accessibilitySnapshot = await page.accessibility.snapshot();
-
-        const savingStart = performance.now();
-        await saveJsonToFile(serializedLocalStorage, path.join(extension_output, 'localstorage.json'));
-        await saveJsonToFile(serializedSessionStorage, path.join(extension_output, 'sessionStorage.json'));
         await saveJsonToFile(accessibilitySnapshot, path.join(extension_output, 'accessibilitySnapshot.json'));
-        for (let i = 0; i < cookies.length; i++) {
-            addCookies(extension, cookies[i]);
-        }
         moveFiles("vv8", extension_output);
-        const savingEnd = performance.now();
         const crawlEnd = performance.now();
 
-        console.log(`The crawl took ${crawlEnd - crawlStart} ms`);
-        console.log(`It the delay lasted ${delayFinished - crawlStart} ms`);
-        console.log(`Saving the html took ${htmlFinish - htmlStart} ms`);
-        console.log(`Saving cookies and storage took ${storageEnd - storageStart} ms`);
-        console.log(`Lighthouse took ${lighthouseEnd - lighthouseStart} ms`);
-        console.log(`WAVE took ${waveEnd - waveStart} ms`);
-        console.log(`Saving took ${savingEnd - savingStart} ms`);
         const crawlLength = crawlEnd - crawlStart;
+        console.log(`The crawl took ${crawlLength} ms`);
         addCrawl(extension, 1, lhr.categories.accessibility.score, waveStats, crawlLength);
+
+        if(verbose){
+            console.log(`It the delay lasted ${delayFinished - crawlStart} ms`);
+            console.log(`Saving the html took ${htmlFinish - htmlStart} ms`);
+            console.log(`Lighthouse took ${lighthouseEnd - lighthouseStart} ms`);
+            console.log(`WAVE took ${waveEnd - waveStart} ms`);  
+        }
     } catch (error) {
         console.log(error);
 
