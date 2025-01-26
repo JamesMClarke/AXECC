@@ -436,7 +436,45 @@ async function crawl(extension) {
         await page.addScriptTag({
             content: waveScript
         });
-        const waveStats = JSON.parse(responseObject[0]); // Access the first response
+        let waveStats = {
+            statistics: {
+                error: 0,
+                contrast: 0,
+                alert: 0,
+                feature: 0,
+                structure: 0,
+                aria: 0
+            }
+        };
+        if (typeof responseObject[0] === 'string') {
+            try {
+                waveStats = JSON.parse(responseObject[0]);
+            } catch (parseError) {
+                console.error('Failed to parse waveStats:', parseError);
+                waveStats = {
+                    statistics: {
+                        error: -1,
+                        contrast: -1,
+                        alert: -1,
+                        feature: -1,
+                        structure: -1,
+                        aria: -1
+                    }
+                };
+            }
+        } else {
+            console.error('Invalid response format for waveStats:', responseObject[0]);
+            waveStats = {
+                statistics: {
+                    error: -1,
+                    contrast: -1,
+                    alert: -1,
+                    feature: -1,
+                    structure: -1,
+                    aria: -1
+                }
+            };
+        }
         const waveEnd = performance.now();
 
 
