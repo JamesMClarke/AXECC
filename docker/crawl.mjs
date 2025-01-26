@@ -330,11 +330,13 @@ async function gotoPageWithRetry(page, url, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             await page.goto(url, {
-                waitUntil: 'networkidle2'
+                waitUntil: 'networkidle2',
+                timeout: 60000 // Increase timeout to 60 seconds
             });
             return;
         } catch (error) {
-            if (i === retries - 1) throw error;
+            console.error(`Error navigating to ${url}: ${error.message}`);
+            if (i === retries - 1) throw error; // Rethrow error after final attempt
             console.log(`Retrying... (${i + 1}/${retries})`);
         }
     }
