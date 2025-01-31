@@ -1,13 +1,28 @@
 FROM docker.io/visiblev8/vv8-base:latest
+
+# Set working directory
 WORKDIR /usr/app
+
+#Update node js and npm
+USER root
+RUN npm install -g n && \
+    n stable && \
+    npm install -g npm@latest && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy application files
 COPY docker/crawl.mjs .
 COPY docker/custom-config.mjs .
 COPY docker/wave.min.js .
-#RUN npm i puppeteer sqlite3 commander puppeteer-extra-plugin-stealth puppeteer-extra fs-extra lighthouse async
+
+# Install required dependencies
 RUN npm i puppeteer sqlite3 commander fs-extra lighthouse async
-#USER root
+
+# If needed, update CA certificates
 #RUN mkdir /usr/local/share/ca-certificates/extra
 #ADD docker/mitmproxy.crt /usr/local/share/ca-certificates/extra/
 #COPY docker/mitmproxy.crt /etc/ssl/certs/mitmproxy.pem
 #RUN update-ca-certificates
-#USER node
+
+# Revert back to the node user for security
+USER node

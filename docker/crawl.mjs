@@ -105,7 +105,7 @@ function getExtensions() {
             if (err) {
                 reject(err);
             } else {
-                const selectNameAndFile = `SELECT name, file FROM extensions`;
+                const selectNameAndFile = `SELECT name, file FROM extensions ORDER BY id`;
 
                 db.all(selectNameAndFile, [], (err, rows) => {
                     if (err) {
@@ -344,19 +344,29 @@ async function gotoPageWithRetry(page, url, retries = 3) {
 
 async function runLighthouse(url, config, page) {
     try {
-        const {
-            lhr
-        } = await lighthouse(url, undefined, config, page);
-        return lhr;
-    } catch (error) {
-        // Handling different types of Lighthouse errors
-        if (error.message.includes('PROTOCOL_TIMEOUT')) {
-            console.error("Protocol timeout error:", error);
-        } else if (error.message.includes('Target closed')) {
-            console.error("Target closed error:", error);
-        } else {
-            console.error("An unknown error occurred:", error);
+        await page.setBypassCSP(true);
+        await page.setCacheEnabled(false);
+        
+        // Add timeout and retry logic
+        const maxRetries = 3;
+        let attempt = 0;
+        
+        while (attempt < maxRetries) {
+            try {
+                const { lhr } = await lighthouse(url, undefined, config, page);
+                return lhr;
+            } catch (error) {
+                attempt++;
+                if (attempt === maxRetries) {
+                    console.error(`Failed to run Lighthouse after ${maxRetries} attempts:`, error);
+                    throw error;
+                }
+                console.log(`Lighthouse attempt ${attempt} failed, retrying...`);
+                await delay(2000); // Wait 2 seconds before retrying
+            }
         }
+    } catch (error) {
+        console.error("Lighthouse error:", error);
         return {
             categories: {
                 accessibility: {
@@ -382,8 +392,14 @@ async function crawl(extension) {
             ignoreHTTPSErrors: true,
             ignoreDefaultArgs: ['--enable-automation'],
             userDataDir: './tmp',
-            args: ['--no-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ]
         });
+        const version = await browser.version();
+        console.log(`Chrome Version: ${version}`);
     } else {
         await updateCurrentExt(extension);
         await delay(time_delay);
@@ -410,10 +426,23 @@ async function crawl(extension) {
         const delayFinished = performance.now();
 
         const lighthouseStart = performance.now();
-        await page.bringToFront()
+        await page.bringToFront();
 
+        var lhr;
         //Run lighthouse
-        const lhr = await runLighthouse(url, config, page);
+        try{
+            lhr = await runLighthouse(url, config, page);
+        } catch (error) {
+            console.error('Failed to run Lighthouse:', error);
+            lhr = {
+                categories: {
+                    accessibility: {
+                        score: -1
+                    }
+                }
+            };
+        }
+
 
         const lighthouseEnd = performance.now();
 
@@ -553,17 +582,25 @@ async function crawl(extension) {
             console.log(`Lighthouse took ${lighthouseEnd - lighthouseStart} ms`);
             console.log(`WAVE took ${waveEnd - waveStart} ms`);  
         }
+
+        page.on('error', (error) => {
+            console.error('Page error:', error);
+        });
+
+        page.on('pageerror', (pageError) => {
+            console.error('Page error:', pageError);
+        });
     } catch (error) {
         console.log(error);
 
         let wave = {
             statistics: {
-                error: 0,
-                contrast: 0,
-                alert: 0,
-                feature: 0,
-                structure: 0,
-                aria: 0
+                error: -1,
+                contrast: -1,
+                alert: -1,
+                feature: -1,
+                structure: -1,
+                aria: -1
             }
         };
         addCrawl(extension, 0, -1, wave, 0);
@@ -605,6 +642,18 @@ async function runCrawls(extensions) {
         } catch (error) {
             // Handling the error
             console.error("An error occurred with the crawl:", error);
+            let wave = {
+                statistics: {
+                    error: -1,
+                    contrast: -1,
+                    alert: -1,
+                    feature: -1,
+                    structure: -1,
+                    aria: -1
+                }
+            };
+            addCrawl(extension, 0, -1, wave, 0);
+            continue; // Continue to the next extension
         }
     }
 }
