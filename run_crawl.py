@@ -26,6 +26,19 @@ def create_containers(page_type):
 
     os.system(command1)
 
+def run_subprocess_command(command, platform):
+    """Helper function to run subprocess commands based on platform
+    Args:
+        command (str): Command to execute
+        platform (str): Operating system platform
+    Returns:
+        subprocess.Popen: Process handle
+    """
+    return subprocess.Popen(
+        command.split() if platform == 'darwin' else command,
+        shell=platform != 'darwin'
+    )
+
 def run_crawl(relative_path, visit_time, page_type, visit_url):
     """
     Function to run the crawl
@@ -49,45 +62,39 @@ def run_crawl(relative_path, visit_time, page_type, visit_url):
     # Wait for crawl to finish
     process2.wait()
 
-def cleanup():
+def cleanup(page_type):
     """
     Function to stop and remove all docker containers
     """
     print("Stopping and removing docker containers")
 
-    command1 = prefix + f"docker stop {sql_name}-web_server-1"
-    command2 = prefix + f"docker stop {sql_name}-mitmproxy-1"
-    command3 = prefix + f"docker stop {sql_name}-automation-1"
+    # Stop containers
+    stop_commands = [
+        f"docker stop {sql_name}-web_server-1",
+        f"docker stop {sql_name}-mitmproxy-1", 
+        f"docker stop {sql_name}-automation-1"
+    ]
 
-    if platform == 'darwin':
-        process1 = subprocess.Popen(command1.split(), shell=False)
-        process2 = subprocess.Popen(command2.split(), shell=False)
-        process3 = subprocess.Popen(command3.split(), shell=False)
-    else:
-        process1 = subprocess.Popen(command1, shell=True)
-        process2 = subprocess.Popen(command2, shell=True)
-        process3 = subprocess.Popen(command3, shell=True)
+    if page_type == "wordpress":
+        stop_commands.append(f"docker stop {sql_name}-db-1")
 
-    process1.wait()
-    process2.wait()
-    process3.wait()
+    processes = [run_subprocess_command(prefix + cmd, platform) for cmd in stop_commands]
+    for p in processes:
+        p.wait()
 
-    command1 = prefix + f"docker rm {sql_name}-web_server-1"
-    command2 = prefix + f"docker rm {sql_name}-mitmproxy-1"
-    command3 = prefix + f"docker rm {sql_name}-automation-1"
+    # Remove containers
+    remove_commands = [
+        f"docker rm {sql_name}-web_server-1",
+        f"docker rm {sql_name}-mitmproxy-1",
+        f"docker rm {sql_name}-automation-1"
+    ]
 
-    if platform == 'darwin':
-        process1 = subprocess.Popen(command1.split(), shell=False)
-        process2 = subprocess.Popen(command2.split(), shell=False)
-        process3 = subprocess.Popen(command3.split(), shell=False)
-    else:
-        process1 = subprocess.Popen(command1, shell=True)
-        process2 = subprocess.Popen(command2, shell=True)
-        process3 = subprocess.Popen(command3, shell=True)
+    if page_type == "wordpress":
+        remove_commands.append(f"docker rm {sql_name}-db-1")
 
-    process1.wait()
-    process2.wait()
-    process3.wait()
+    processes = [run_subprocess_command(prefix + cmd, platform) for cmd in remove_commands]
+    for p in processes:
+        p.wait()
 
 platform = sys.platform 
 
@@ -140,4 +147,4 @@ create_containers(page_type)
 sleep(2)
 run_crawl(relative_path, visit_time, page_type, visit_url)
 sleep(2)
-cleanup()
+cleanup(page_type)
