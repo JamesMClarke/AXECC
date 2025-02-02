@@ -354,6 +354,7 @@ async function runLighthouse(url, config, page) {
         while (attempt < maxRetries) {
             try {
                 const { lhr } = await lighthouse(url, undefined, config, page);
+                console.log(`Lighthouse score: ${lhr.categories.accessibility.score}`);
                 return lhr;
             } catch (error) {
                 attempt++;
