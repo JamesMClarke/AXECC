@@ -69,39 +69,59 @@ def get_vv8_postprocessor():
   sql_insert_fptp = '''INSERT INTO vv8Trackers  (extension, firstOrigin, url) VALUES (?,?,?);'''
   sql_insert_callargs = '''INSERT INTO callargs (extension, apiName, passedArgs, scriptHash, scriptOffset, securityOrigin) VALUES (?,?,?,?,?,?)'''
 
+  # Batch process records
+  batch_size = 1000
+  batch_vv8 = []
+  batch_fptp = []
+  batch_callargs = []
+  
   for file_name in files:
-    #try:
     vv8_logs = os.path.join(crawl_dir, file_name, 'vv8*.log')
     command = f"./vv8-post-processor -aggs adblock+fptp+callargs {vv8_logs}"
-    print(command)
+    
     try:
       result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
+      output_list = result.stdout.splitlines()
+      
+      for output in output_list:
+        try:
+          data_list = json.loads(output)
+          
+          if data_list[0] == 'firstpartythirdparty':
+            data = data_list[1]
+            batch_vv8.append([file_name, data['FirstOrigin'], data['ScriptProperty'], 
+                            data['ThirdParty'], data['Tracking'], data['URL']])
+          elif data_list[0] == 'adblock':
+            data = data_list[1]
+            batch_fptp.append([file_name, data['FirstOrigin'], data["URL"]])
+          elif data_list[0] == 'callargs':
+            data = data_list[1]
+            batch_callargs.append([file_name, data['api_name'], str(data['passed_args']),
+                                data['script_hash'], data['script_offset'], data['security_origin']])
+            
+          # Execute batch inserts when batch size is reached
+          if len(batch_vv8) >= batch_size:
+            common.insert_many(conn, sql_insert_vv8_tracker, batch_vv8)
+            batch_vv8 = []
+          if len(batch_fptp) >= batch_size:
+            common.insert_many(conn, sql_insert_fptp, batch_fptp)
+            batch_fptp = []
+          if len(batch_callargs) >= batch_size:
+            common.insert_many(conn, sql_insert_callargs, batch_callargs)
+            batch_callargs = []
+            
+        except:
+          print(f"Error parsing: {output}")
     except:
-      output_list = ""
-
-    output_list = result.stdout.splitlines()
-    for output in output_list:
-      try:
-        data_list = json.loads(output)
-
-        if data_list[0] == 'firstpartythirdparty':
-          print("first party third party")
-          data = data_list[1]
-          print(f"First Origin {data['FirstOrigin']}, Script Property {data['ScriptProperty']}, Third Party {data['ThirdParty']}, Tracking {data['Tracking']}, URL {data['URL']}")
-          common.insert_data(conn, sql_insert_vv8_tracker, [file_name, data['FirstOrigin'], data['ScriptProperty'], data['ThirdParty'], data['Tracking'], data['URL']])
-        elif data_list[0] == 'adblock':
-          print("Adblock")
-          data = data_list[1]
-          print(f"Should be blocked {data['Blocked']}, First Origin {data['FirstOrigin']}, url {data['URL']}")
-          common.insert_data(conn, sql_insert_fptp, [file_name, data['FirstOrigin'], data["URL"]])
-        elif data_list[0] == 'callargs':
-          print("Callargs")
-          data = data_list[1]
-          print(data)
-          common.insert_data(conn, sql_insert_callargs, [file_name, data['api_name'], str(data['passed_args']), data['script_hash'], data['script_offset'], data['security_origin']])
-      except:
-        print(f"Error parsing: {output}")
-        data_list = ["","",""]
+      continue
+    
+  # Insert remaining records
+  if batch_vv8:
+    common.insert_many(conn, sql_insert_vv8_tracker, batch_vv8)
+  if batch_fptp:
+    common.insert_many(conn, sql_insert_fptp, batch_fptp)
+  if batch_callargs:
+    common.insert_many(conn, sql_insert_callargs, batch_callargs)
 
 class rule:
   def __init__(self, name, rules):
@@ -153,10 +173,10 @@ def download_and_load_lists():
     """
     Need to download;
     EasyPrivacy (https://easylist.to/easylist/easyprivacy.txt)
-    AdGuard’s Tracking Protection Filter (https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_3_Spyware/filter.txt) https://github.com/AdguardTeam/AdguardFilters/tree/master/SpywareFilter/sections
+    AdGuard's Tracking Protection Filter (https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_3_Spyware/filter.txt) https://github.com/AdguardTeam/AdguardFilters/tree/master/SpywareFilter/sections
     Easy list without adult filter (https://easylist-downloads.adblockplus.org/easylist_noadult.txt)
-    AdGuard’s Base Filter
-    AdGuard’s Mobile ads filter (https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_11_Mobile/filter.txt)"""
+    AdGuard's Base Filter
+    AdGuard's Mobile ads filter (https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/filters/filter_11_Mobile/filter.txt)"""
 
     if not skip_download:
         print("Downloading tracker lists")
@@ -198,40 +218,35 @@ def identify_network_trackers():
     :return: A dataframe with the extension name, url and type of any trackers
     """
     rule_list = download_and_load_lists()
-
-    total = 0
-
-
-    #Get all requests
+    
+    # Pre-compile rules for faster matching
+    compiled_rules = [(r.name, r.rules) for r in rule_list]
+    
     rows = common.select_all(conn, "requests")
-
-    trackers = pd.DataFrame(columns=['name', 'url', 'network_tracker', 'network_tracker_type'])
-
+    trackers_data = []
+    
     with tqdm(total=len(rows)) as pbar:
-      for row in rows:
-        url = row[1]
-        name = row[2]
-        should_block = False
-        category = ""
-
-        for rules in rule_list:
-          #Checks if url should be blocked
-          if rules.rules.should_block(url):
-            should_block = True
-            total += 1
-            if len(category) == 0:
-              category += rules.name
-            else:
-              category += ',' + rules.name
-
-        #Write results back to db
-        row = {'name':name,'url':url,'network_tracker':should_block,'network_tracker_type':category}
-        trackers.loc[len(trackers)] = row
-        pbar.update(1)
-
-
-    print("The total number of trackers found was %s" %(total))
-    return trackers
+        for row in rows:
+            url = row[1]
+            name = row[2]
+            should_block = False
+            categories = set()  # Using set for faster unique category tracking
+            
+            for rule_name, rules in compiled_rules:
+                if rules.should_block(url):
+                    should_block = True
+                    categories.add(rule_name)
+            
+            category = ",".join(categories)
+            trackers_data.append({
+                'name': name,
+                'url': url,
+                'network_tracker': should_block,
+                'network_tracker_type': category
+            })
+            pbar.update(1)
+    
+    return pd.DataFrame(trackers_data)
 
 def merge_trackers(network, vv8):
     """
@@ -269,7 +284,6 @@ sqlite_filepath = os.path.join(cwd, sqlite_file)
 if(os.path.isfile(sqlite_filepath)):
     print("File %s exists, starting preprocessing" %(sqlite_filepath))
     conn = common.create_connection(sqlite_filepath)
-
 else:
     print("File %s doesn't exists, stopping" %(sqlite_filepath))
     sys.exit()
