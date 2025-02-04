@@ -1,14 +1,14 @@
 services:
   db:
-    image: mysql:latest
+    build: 
+      context: .  # Specify the build context
+      dockerfile: db  # Specify the Dockerfile
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: MySQLRootPassword
       MYSQL_DATABASE: MySQLDatabaseName
       MYSQL_USER: MySQLUsername
       MYSQL_PASSWORD: MySQLUserPassword
-    volumes:
-      - ./mysql_data:/var/lib/mysql
     networks:
         - automation-net
 
@@ -18,7 +18,7 @@ services:
     image: wordpress:latest
     restart: always
     #ports:
-      #- "80:80"
+    #  - "80:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: MySQLUsername
@@ -32,8 +32,8 @@ services:
   #phpmyadmin:
   #  image: phpmyadmin/phpmyadmin
   #  restart: always
-    #ports:
-    #  - "8084:80"
+  #  ports:
+  #    - "8084:80"
   #  environment:
   #    PMA_HOST: db
   #    PMA_USER: MySQLUsername

@@ -211,31 +211,6 @@ function addCookies(extension, cookie) {
     });
 }
 
-async function checkCurrentExt(extension) {
-    return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database(sqlFile, (err) => {
-            if (err) {
-                return reject(new Error(`Error connecting to database: ${err}`));
-            }
-
-            const query = "SELECT * FROM current_ext WHERE extension = ?";
-            db.all(query, [extension], (err, rows) => {
-                db.close((closeErr) => { // Close connection even on errors
-                    if (closeErr) {
-                        console.error('Error closing database connection:', closeErr);
-                    }
-
-                    if (err) {
-                        return false;
-                    }
-
-                    resolve(rows.length > 0); // Check if at least one row exists
-                });
-            });
-        });
-    });
-}
-
 async function updateCurrentExt(extension) {
     const db = new sqlite3.Database(sqlFile, (err) => {
         if (err) {
@@ -342,42 +317,6 @@ async function gotoPageWithRetry(page, url, retries = 3) {
     }
 }
 
-async function runLighthouse(url, config, page) {
-    try {
-        await page.setBypassCSP(true);
-        await page.setCacheEnabled(false);
-        
-        // Add timeout and retry logic
-        const maxRetries = 3;
-        let attempt = 0;
-        
-        while (attempt < maxRetries) {
-            try {
-                const { lhr } = await lighthouse(url, undefined, config, page);
-                console.log(`Lighthouse score: ${lhr.categories.accessibility.score}`);
-                return lhr;
-            } catch (error) {
-                attempt++;
-                if (attempt === maxRetries) {
-                    console.error(`Failed to run Lighthouse after ${maxRetries} attempts:`, error);
-                    throw error;
-                }
-                console.log(`Lighthouse attempt ${attempt} failed, retrying...`);
-                await delay(2000); // Wait 2 seconds before retrying
-            }
-        }
-    } catch (error) {
-        console.error("Lighthouse error:", error);
-        return {
-            categories: {
-                accessibility: {
-                    score: -1
-                }
-            }
-        };
-    }
-}
-
 async function crawl(extension) {
     let extension_output = path.join(outputDir, extension)
     create_dir(extension_output);
@@ -426,16 +365,24 @@ async function crawl(extension) {
         await delay(5000);
         const delayFinished = performance.now();
 
+        // Screenshot and get html of page
+        //await page.screenshot({ 
+        //    path: path.join(extension_output, "screenshot.png"), 
+        //    type: 'png', 
+        //    fullPage: true
+        //});
+
         const lighthouseStart = performance.now();
         await page.bringToFront();
 
-        var lhr;
-        //Run lighthouse
-        try{
-            lhr = await runLighthouse(url, config, page);
+        let lhr; // Declare lhr outside the try-catch block
+        try {
+            const result = await lighthouse(url, undefined, config, page);
+            lhr = result.lhr; // Assign lhr from the result
+            console.log(`Lighthouse score: ${lhr.categories.accessibility.score}`);
         } catch (error) {
             console.error('Failed to run Lighthouse:', error);
-            lhr = {
+            lhr = { // Assign a default value to lhr
                 categories: {
                     accessibility: {
                         score: -1
@@ -443,7 +390,11 @@ async function crawl(extension) {
                 }
             };
         }
-
+        if(lhr.categories.accessibility.score == undefined){
+            console.log("Lighthouse failed, most likely due to the honeypage not loading");
+            console.log("Exiting the crawl");
+            process.exit();
+        }
 
         const lighthouseEnd = performance.now();
 
@@ -517,12 +468,7 @@ async function crawl(extension) {
             console.log(`The delay should be ${visitTime - currentVisitTime}`);
         }
 
-        // Screenshot and get html of page
-        //await page.screenshot({ 
-        //    path: path.join(extension_output, "screenshot.png"), 
-        //    type: 'png', 
-        //    fullPage: true
-        //});
+
         
         const htmlStart = performance.now();
         const htmlContent = await page.content();

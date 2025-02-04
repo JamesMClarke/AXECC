@@ -1,0 +1,5 @@
+# Dockerfile
+FROM mysql:latest
+
+# Copy files from the host to the container
+COPY ./mysql_data /var/lib/mysql
