@@ -336,7 +336,8 @@ async function crawl(extension) {
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu'
-            ]
+            ],
+            timeout: 60000 // Set timeout to 60 seconds (60000 ms)
         });
         const version = await browser.version();
         console.log(`Chrome Version: ${version}`);
@@ -354,7 +355,8 @@ async function crawl(extension) {
             ignoreDefaultArgs: ['--enable-automation'],
             userDataDir: './tmp',
             logLevel: 'info',
-            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`,'--disable-dev-shm-usage','--disable-gpu','--ignore-certificate-errors']
+            args: ['--no-sandbox', `--disable-extensions-except=${extPath}`, `--load-extension=${extPath}`,'--disable-dev-shm-usage','--disable-gpu','--ignore-certificate-errors'],
+            timeout: 60000 // Set timeout to 60 seconds (60000 ms)
         });
     }
     //Time delay before starting to crawl
@@ -365,12 +367,12 @@ async function crawl(extension) {
         await delay(5000);
         const delayFinished = performance.now();
 
+        const htmlStart = performance.now();
+        const htmlContent = await page.content();
+        await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
+        const htmlFinish = performance.now();
+
         // Screenshot and get html of page
-        //await page.screenshot({ 
-        //    path: path.join(extension_output, "screenshot.png"), 
-        //    type: 'png', 
-        //    fullPage: true
-        //});
 
         const lighthouseStart = performance.now();
         await page.bringToFront();
@@ -391,9 +393,15 @@ async function crawl(extension) {
             };
         }
         if(lhr.categories.accessibility.score == undefined){
-            console.log("Lighthouse failed, most likely due to the honeypage not loading");
-            console.log("Exiting the crawl");
-            process.exit();
+            lhr.categories.accessibility.score = -1;
+            console.log("Lighthouse failed to run");
+            // Screenshot and get html of page
+            //await page.screenshot({ 
+            //    path: path.join(outputDir, "lighthouse_error.png"), 
+            //    type: 'png', 
+            //    fullPage: true,
+            //    timeout: 30000 // Set timeout to 30 seconds (30000 ms)
+            //});
         }
 
         const lighthouseEnd = performance.now();
@@ -467,13 +475,6 @@ async function crawl(extension) {
             await delay(visitTime - currentVisitTime);
             console.log(`The delay should be ${visitTime - currentVisitTime}`);
         }
-
-
-        
-        const htmlStart = performance.now();
-        const htmlContent = await page.content();
-        await fs.promises.writeFile(path.join(extension_output, 'page.html'), htmlContent);
-        const htmlFinish = performance.now();
 
         let localStorage;
         try {
@@ -561,46 +562,121 @@ async function crawl(extension) {
 
 }
 
-async function runCrawls(extensions) {
-    fs.copyFile('/artifacts/idldata.json', path.join(outputDir, 'idldata.json'), (err) => {
-        if (err) {
-            console.error('Error copying file:', err);
-        } else {
-            console.log('File copied successfully!');
-        }
+async function getLastCrawledExtension() {
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database(sqlFile, (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                const query = `SELECT extension FROM crawl ORDER BY crawlId DESC LIMIT 1`;
+                db.get(query, [], (err, row) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(row ? row.extension : null);
+                    }
+                });
+                db.close();
+            }
+        });
     });
+}
 
-    await crawl('baseline');
-    fs.rmSync(path.join(currentDir, 'tmp'), {
-        recursive: true,
-        force: true
+async function deleteRequestsForLastCrawledExtension(lastCrawledExtension) {
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database(sqlFile, (err) => {
+            if (err) {
+                reject(err);
+            } else {
+                const query = `DELETE FROM requests WHERE extension = ?`;
+                db.run(query, [lastCrawledExtension], function(err) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        console.log(`Deleted ${this.changes} entries related to extension: ${lastCrawledExtension}`);
+                        resolve();
+                    }
+                });
+                db.close();
+            }
+        });
     });
+}
+async function deleteFilesForLastCrawledExtension(lastCrawledExtension) {
+    const extensionDirPath = path.join(extensionDir, lastCrawledExtension); // Adjust the path as needed
+    try {
+        // Check if the directory exists
+        if (fs.existsSync(extensionDirPath)) {
+            // Remove the directory and its contents
+            fs.rmSync(path.join(currentDir, 'tmp'), {
+                recursive: true,
+                force: true
+            });
+            console.log(`Deleted files related to extension: ${lastCrawledExtension}`);
+        } else {
+            console.log(`No files found for extension: ${lastCrawledExtension}`);
+        }
+    } catch (error) {
+        console.error(`Error deleting files for extension ${lastCrawledExtension}:`, error);
+    }
+}
+
+async function runCrawls(extensions) {
+    // Get the last crawled extension from the crawl table
+    const lastCrawledExtension = await getLastCrawledExtension();
+    
+    
+    let startCrawling = false;
+    let firstCrawledExtension = null; // Variable to track the first crawled extension
+
+    if (!lastCrawledExtension) {
+        console.log("No previous crawls found. Starting from the first extension.");
+    }else{
+        console.log(`Last crawled extension: ${lastCrawledExtension.file}`);
+    }
 
     for (const extension of extensions) {
-        // Call crawl function directly without await (it's already async)
-        try {
-            if (extensions.file != 'None') {
-                await crawl(extension.file);
-                fs.rmSync(path.join(currentDir, 'tmp'), {
-                    recursive: true,
-                    force: true
-                });
-            }
-        } catch (error) {
-            // Handling the error
-            console.error("An error occurred with the crawl:", error);
-            let wave = {
-                statistics: {
-                    error: -1,
-                    contrast: -1,
-                    alert: -1,
-                    feature: -1,
-                    structure: -1,
-                    aria: -1
+        // Check if we should start crawling
+        if (lastCrawledExtension && extension.file === lastCrawledExtension) {
+            startCrawling = true; // Start crawling from the next extension
+            console.log(`Starting from extension: ${extension.file}`);
+            // continue; // Skip the last crawled extension
+        }
+
+        if (startCrawling || !lastCrawledExtension) {
+            try {
+                if (extension.file !== 'None') {
+                    // Set the first crawled extension if it hasn't been set yet
+                    if (!firstCrawledExtension) {
+                        firstCrawledExtension = extension.file;
+                        console.log(`First crawled extension: ${firstCrawledExtension}`);
+                        console.log(`Going to continue crawl from ${extension.file}`);
+                        // Delete requests and files related to the first crawled extension before crawling
+                        await deleteRequestsForLastCrawledExtension(firstCrawledExtension);
+                        await deleteFilesForLastCrawledExtension(firstCrawledExtension);
+                    }
+
+                    await crawl(extension.file);
+                    fs.rmSync(path.join(currentDir, 'tmp'), {
+                        recursive: true,
+                        force: true
+                    });
                 }
-            };
-            addCrawl(extension, 0, -1, wave, 0);
-            continue; // Continue to the next extension
+            } catch (error) {
+                console.error("An error occurred with the crawl:", error);
+                let wave = {
+                    statistics: {
+                        error: -1,
+                        contrast: -1,
+                        alert: -1,
+                        feature: -1,
+                        structure: -1,
+                        aria: -1
+                    }
+                };
+                addCrawl(extension, 0, -1, wave, 0);
+                continue; // Continue to the next extension
+            }
         }
     }
 }
