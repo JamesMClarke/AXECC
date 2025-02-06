@@ -727,7 +727,7 @@ const extensionDir = path.join(path.dirname(sqlFile), 'preprocessed');
 const outputDir = path.join(path.dirname(sqlFile), 'crawl');
 create_dir(outputDir)
 
-getExtensions()
+await getExtensions()
     .then((extensions) => {
         runCrawls(extensions);
     })
