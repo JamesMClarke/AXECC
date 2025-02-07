@@ -114,65 +114,6 @@ function getExtensions() {
                     } else {
                         resolve(rows); // Resolve the promise with the results
                     }
-
-                    const createTableQuery = `CREATE TABLE IF NOT EXISTS cookies (
-  cookieId INTEGER PRIMARY KEY AUTOINCREMENT,
-  extension TEXT,
-  name TEXT ,
-  value TEXT,
-  domain TEXT,
-  path TEXT,
-  expires INTEGER,
-  size INTEGER
-)`;
-
-                    db.run(createTableQuery, (err) => {
-                        if (verbose) {
-                            if (err) {
-                                console.error(err.message);
-                            } else {
-                                console.log('Cookies table created (if it did not exist).');
-                            }
-                        }
-                    });
-
-                    const createTableRequests = `CREATE TABLE IF NOT EXISTS current_ext (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-extension TEXT
-)`;
-                    db.run(createTableRequests, (err) => {
-                        if (verbose) {
-                            if (err) {
-                                console.error(err.message);
-                            } else {
-                                console.log('Requests table created (if it did not exist).');
-                            }
-                        }
-                    });
-
-                    const createTableCrawl = `CREATE TABLE IF NOT EXISTS crawl (
-crawlId INTEGER PRIMARY KEY AUTOINCREMENT,
-extension TEXT,
-success INT,
-lighthouse INT,
-waveErrors INT,
-waveContrastErrors INT,
-waveAlerts INT,
-waveFeatures INT,
-waveStructuralElements INT,
-waveAria INT,
-time FLOAT
-)`;
-                    db.run(createTableCrawl, (err) => {
-                        if (verbose) {
-                            if (err) {
-                                console.error(err.message);
-                            } else {
-                                console.log('Crawl table created (if it did not exist).');
-                            }
-                        }
-                    });
-
                     db.close(); // Close the database connection even on error
                 });
             }
@@ -622,6 +563,15 @@ async function deleteFilesForLastCrawledExtension(lastCrawledExtension) {
 }
 
 async function runCrawls(extensions) {
+    // Copy the idldata.json file to the output directory
+    fs.copyFile('/artifacts/idldata.json', path.join(outputDir, 'idldata.json'), (err) => {
+        if (err) {
+            console.error('Error copying file:', err);
+        } else {
+            console.log('File copied successfully!');
+        }
+    });
+
     // Get the last crawled extension from the crawl table
     const lastCrawledExtension = await getLastCrawledExtension();
     
@@ -635,13 +585,23 @@ async function runCrawls(extensions) {
         console.log(`Last crawled extension: ${lastCrawledExtension.file}`);
     }
 
+    if (!startCrawling && !lastCrawledExtension) {
+        startCrawling = true;
+        console.log(`Starting from baseline`);
+        await crawl('baseline');
+        fs.rmSync(path.join(currentDir, 'tmp'), {
+            recursive: true,
+            force: true
+        });
+    }
+
     for (const extension of extensions) {
         // Check if we should start crawling
         if (lastCrawledExtension && extension.file === lastCrawledExtension) {
             startCrawling = true; // Start crawling from the next extension
             console.log(`Starting from extension: ${extension.file}`);
-            // continue; // Skip the last crawled extension
-        }
+            continue; // Skip the last crawled extension
+        } 
 
         if (startCrawling || !lastCrawledExtension) {
             try {
@@ -649,11 +609,10 @@ async function runCrawls(extensions) {
                     // Set the first crawled extension if it hasn't been set yet
                     if (!firstCrawledExtension) {
                         firstCrawledExtension = extension.file;
-                        console.log(`First crawled extension: ${firstCrawledExtension}`);
                         console.log(`Going to continue crawl from ${extension.file}`);
                         // Delete requests and files related to the first crawled extension before crawling
-                        await deleteRequestsForLastCrawledExtension(firstCrawledExtension);
-                        await deleteFilesForLastCrawledExtension(firstCrawledExtension);
+                        await deleteRequestsForLastCrawledExtension(extension.file);
+                        await deleteFilesForLastCrawledExtension(extension.file);
                     }
 
                     await crawl(extension.file);
@@ -681,6 +640,78 @@ async function runCrawls(extensions) {
     }
 }
 
+async function initializeDatabase() {
+    const db = new sqlite3.Database(sqlFile, (err) => {
+        if (err) {
+            console.error("Error opening database:", err);
+        } else {
+            console.log("Connected to the database.");
+        }
+    });
+
+    const createCrawlTable = `CREATE TABLE IF NOT EXISTS crawl (
+        crawlId INTEGER PRIMARY KEY AUTOINCREMENT,
+        extension TEXT,
+        success INT,
+        lighthouse INT,
+        waveErrors INT,
+        waveContrastErrors INT,
+        waveAlerts INT,
+        waveFeatures INT,
+        waveStructuralElements INT,
+        waveAria INT,
+        time FLOAT
+    )`;
+
+    // Execute table creation queries
+    await new Promise((resolve, reject) => {
+        db.run(createCrawlTable, (err) => {
+            if (err) {
+                console.error("Error creating crawl table:", err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+
+    const createTableQuery = `CREATE TABLE IF NOT EXISTS cookies (
+        cookieId INTEGER PRIMARY KEY AUTOINCREMENT,
+        extension TEXT,
+        name TEXT ,
+        value TEXT,
+        domain TEXT,
+        path TEXT,
+        expires INTEGER,
+        size INTEGER
+      )`;
+      
+                          db.run(createTableQuery, (err) => {
+                              if (verbose) {
+                                  if (err) {
+                                      console.error(err.message);
+                                  } else {
+                                      console.log('Cookies table created (if it did not exist).');
+                                  }
+                              }
+                          });
+      
+                          const createTableRequests = `CREATE TABLE IF NOT EXISTS current_ext (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      extension TEXT
+      )`;
+                          db.run(createTableRequests, (err) => {
+                              if (verbose) {
+                                  if (err) {
+                                      console.error(err.message);
+                                  } else {
+                                      console.log('Requests table created (if it did not exist).');
+                                  }
+                              }
+                          });
+
+    db.close();
+}
 
 program
     .version('0.0.1')
@@ -727,7 +758,13 @@ const extensionDir = path.join(path.dirname(sqlFile), 'preprocessed');
 const outputDir = path.join(path.dirname(sqlFile), 'crawl');
 create_dir(outputDir)
 
-await getExtensions()
+await initializeDatabase()
+    .then(() => {
+        return getExtensions();
+    })
     .then((extensions) => {
         runCrawls(extensions);
     })
+    .catch((error) => {
+        console.error("Error getting extensions:", error);
+    });
