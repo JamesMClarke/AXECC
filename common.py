@@ -54,3 +54,17 @@ def select_column(conn, column):
 def drop_table(conn, table):
     c = conn.cursor()
     c.execute(f"DROP TABLE IF EXISTS {table}")
+
+def insert_many(conn, sql, data):
+    """Insert multiple records at once"""
+    cursor = conn.cursor()
+    cursor.executemany(sql, data)
+    conn.commit()
+
+def create_indexes(conn):
+    """Create indexes for frequently queried columns"""
+    cursor = conn.cursor()
+    cursor.execute("""CREATE INDEX IF NOT EXISTS idx_requests_url ON requests(url)""")
+    cursor.execute("""CREATE INDEX IF NOT EXISTS idx_vv8trackers_url ON vv8Trackers(url)""")
+    cursor.execute("""CREATE INDEX IF NOT EXISTS idx_network_trackers_url ON network_trackers(url)""")
+    conn.commit()
