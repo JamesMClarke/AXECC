@@ -8,7 +8,6 @@ import urllib.request
 import csv, argparse, os, sys, time, requests, json, sqlite3, subprocess, shutil
 from tqdm import tqdm
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
 
 # Get the current directory path
 current_dir = os.path.dirname(__file__)
@@ -76,7 +75,7 @@ def get_vv8_postprocessor():
   batch_fptp = []
   batch_callargs = []
   
-  def process_file(file_name):
+  for file_name in files:
     vv8_logs = os.path.join(crawl_dir, file_name, 'vv8*.log')
     command = f"./vv8-post-processor -aggs adblock+fptp+callargs {vv8_logs}"
     
@@ -85,42 +84,38 @@ def get_vv8_postprocessor():
       output_list = result.stdout.splitlines()
       
       for output in output_list:
-          try:
-              data_list = json.loads(output)
-              
-              if data_list[0] == 'firstpartythirdparty':
-                  data = data_list[1]
-                  batch_vv8.append([file_name, data['FirstOrigin'], data['ScriptProperty'], 
-                                  data['ThirdParty'], data['Tracking'], data['URL']])
-              elif data_list[0] == 'adblock':
-                  data = data_list[1]
-                  batch_fptp.append([file_name, data['FirstOrigin'], data["URL"]])
-              elif data_list[0] == 'callargs':
-                  data = data_list[1]
-                  batch_callargs.append([file_name, data['api_name'], str(data['passed_args']),
-                                      data['script_hash'], data['script_offset'], data['security_origin']])
-              
-              # Execute batch inserts when batch size is reached
-              if len(batch_vv8) >= batch_size:
-                  common.insert_many(conn, sql_insert_vv8_tracker, batch_vv8)
-                  batch_vv8.clear()
-              if len(batch_fptp) >= batch_size:
-                  common.insert_many(conn, sql_insert_fptp, batch_fptp)
-                  batch_fptp.clear()
-              if len(batch_callargs) >= batch_size:
-                  common.insert_many(conn, sql_insert_callargs, batch_callargs)
-                  batch_callargs.clear()
-              
-          except:
-              print(f"Error parsing: {output}")
+        try:
+          data_list = json.loads(output)
+          
+          if data_list[0] == 'firstpartythirdparty':
+            data = data_list[1]
+            batch_vv8.append([file_name, data['FirstOrigin'], data['ScriptProperty'], 
+                            data['ThirdParty'], data['Tracking'], data['URL']])
+          elif data_list[0] == 'adblock':
+            data = data_list[1]
+            batch_fptp.append([file_name, data['FirstOrigin'], data["URL"]])
+          elif data_list[0] == 'callargs':
+            data = data_list[1]
+            batch_callargs.append([file_name, data['api_name'], str(data['passed_args']),
+                                data['script_hash'], data['script_offset'], data['security_origin']])
+            
+          # Execute batch inserts when batch size is reached
+          if len(batch_vv8) >= batch_size:
+            common.insert_many(conn, sql_insert_vv8_tracker, batch_vv8)
+            batch_vv8 = []
+          if len(batch_fptp) >= batch_size:
+            common.insert_many(conn, sql_insert_fptp, batch_fptp)
+            batch_fptp = []
+          if len(batch_callargs) >= batch_size:
+            common.insert_many(conn, sql_insert_callargs, batch_callargs)
+            batch_callargs = []
+            
+        except:
+          print(f"Error parsing: {output}")
     except:
-        return
-
-  # Use ThreadPoolExecutor to process files concurrently
-  with ThreadPoolExecutor() as executor:
-    executor.map(process_file, files)
-
-  # Insert remaining records after all threads have completed
+      continue
+    
+  # Insert remaining records
   if batch_vv8:
     common.insert_many(conn, sql_insert_vv8_tracker, batch_vv8)
   if batch_fptp:

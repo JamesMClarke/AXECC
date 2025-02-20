@@ -333,6 +333,16 @@ async function crawl(extension) {
                 }
             };
         }
+        if(extension === 'baseline'){
+            // Screenshot
+            await page.screenshot({ 
+                path: path.join(extension_output, "page.png"), 
+                type: 'png', 
+                fullPage: true,
+                timeout: 30000 // Set timeout to 30 seconds (30000 ms)
+            });   
+        }
+
         if(lhr.categories.accessibility.score == undefined){
             lhr.categories.accessibility.score = -1;
             console.log("Lighthouse failed to run");
@@ -544,19 +554,26 @@ async function deleteRequestsForLastCrawledExtension(lastCrawledExtension) {
     });
 }
 async function deleteFilesForLastCrawledExtension(lastCrawledExtension) {
-    const extensionDirPath = path.join(extensionDir, lastCrawledExtension); // Adjust the path as needed
     try {
-        // Check if the directory exists
-        if (fs.existsSync(extensionDirPath)) {
             // Remove the directory and its contents
             fs.rmSync(path.join(currentDir, 'tmp'), {
                 recursive: true,
                 force: true
             });
+              // Read the contents of the directory
+            const files = fs.readdirSync(currentDir);
+
+            // Filter files that match the pattern 'vv8*'
+            const filesToDelete = files.filter(file => file.startsWith('vv8'));
+
+            // Delete each matching file
+            for (const file of filesToDelete) {
+                const filePath = path.join(currentDir, file);
+                fs.rmSync(filePath, { recursive: true, force: true });
+                console.log(`Deleted: ${filePath}`);
+            }
             console.log(`Deleted files related to extension: ${lastCrawledExtension}`);
-        } else {
-            console.log(`No files found for extension: ${lastCrawledExtension}`);
-        }
+
     } catch (error) {
         console.error(`Error deleting files for extension ${lastCrawledExtension}:`, error);
     }
@@ -587,6 +604,7 @@ async function runCrawls(extensions) {
 
     if (!startCrawling && !lastCrawledExtension) {
         startCrawling = true;
+        firstCrawledExtension = true;
         console.log(`Starting from baseline`);
         await crawl('baseline');
         fs.rmSync(path.join(currentDir, 'tmp'), {

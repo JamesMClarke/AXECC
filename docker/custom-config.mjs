@@ -6,6 +6,7 @@ export default {
       maxWaitForLoad: 50 * 1000,
       formFactor: 'desktop',
       onlyCategories: ['accessibility'],
+      ignoreStatusCode: true,
       screenEmulation: {
         mobile: false,
         width: 1350,
