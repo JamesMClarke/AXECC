@@ -4,21 +4,13 @@ channels:
 dependencies:
   - pandas
   - tqdm
-  - scikit-learn
   - matplotlib
-  - pytorch::pytorch
-  - torchaudio
-  - torchvision
   - jupyterlab
   - re2
   - pip
   - seaborn
   - plotly
-  - xgboost
-  - keras
   - python=3.11
-  - tensorflow
   - shap
   - tldextract
-  - python-graphviz
 prefix: /Users/jc02788/miniconda3/envs/accessibility_extension_env
