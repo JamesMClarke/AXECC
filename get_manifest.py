@@ -11,17 +11,18 @@ def create_table_from_list(conn, column_names):
     create_table_stmt = f"""CREATE TABLE IF NOT EXISTS permissions (
         name text,
         {', '.join([f'`{col}` INTEGER' for col in column_names])}
-        ,manifest INTERGER
+        ,manifest INTERGER,
+        hosts TEXT
     );"""
     cursor = conn.cursor()
     # Execute CREATE TABLE statement
     cursor.execute(create_table_stmt)
 
-def insert_list(conn, name, column_names, list_data, manifest):
+def insert_list(conn, name, column_names, list_data, manifest, hosts):
     cursor = conn.cursor()
     # Insert data into the table using parameterized queries for security
-    insert_stmt = f"""INSERT INTO permissions (name,{', '.join([f'`{col}`' for col in column_names])}, manifest) VALUES (?,{', '.join(['?'] * len(column_names))}, ?);"""
-    cursor.execute(insert_stmt, [name]+list_data+[manifest])
+    insert_stmt = f"""INSERT INTO permissions (name,{', '.join([f'`{col}`' for col in column_names])}, manifest, hosts) VALUES (?,{', '.join(['?'] * len(column_names))}, ?,?);"""
+    cursor.execute(insert_stmt, [name]+list_data+[manifest]+[str(hosts)])
 
     # Save changes to the database
     conn.commit()
@@ -71,17 +72,18 @@ current_dir = os.getcwd()
 sql_name = os.path.basename(sql_file).split(".")[0]
 
 #Check if csv file exists
-sql_file = os.path.join(current_dir,sql_file)
+#sql_file = os.path.join(current_dir,sql_file)
 if(os.path.isfile(sql_file)):
     print("File %s exists, starting to get manifests" %(sql_name))
 else:
     print("File %s doesn't exists, stopping" %(sql_file))
     sys.exit()
 
-all_files = os.path.join(current_dir,"extensions")
-category_folder = os.path.join(all_files, sql_name)
-create_directory(category_folder)
-dir = os.path.join(category_folder,"preprocessed")
+#all_files = os.path.join(current_dir,"extensions")
+#category_folder = os.path.join(all_files, sql_name)
+#create_directory(category_folder)
+category_folder = os.path.dirname(sql_file)
+preprocessed_dir = os.path.join(category_folder,"preprocessed")
 
 conn = create_connection(sql_file)
 files = select_column(conn, 'file')
@@ -89,15 +91,16 @@ create_table_from_list(conn, perms)
 
 no_files = len(files)
 hosts = {}
-optional_hosts = {}
+
 with tqdm(total=no_files) as pbar:
     for filename in files:
         filename = filename.replace(".crx","")
         if verbose:
             tqdm.write("Checking %s" %str(filename))
 
-        try:
-            with open(os.path.join(dir, filename, 'manifest.json')) as f:
+        #Check if extension has a manifest file
+        if os.path.exists(os.path.join(preprocessed_dir, filename, 'manifest.json')):
+            with open(os.path.join(preprocessed_dir, filename, 'manifest.json'), 'r', encoding='utf-8-sig') as f:
                 data = json.load(f)
 
                 try:
@@ -116,53 +119,65 @@ with tqdm(total=no_files) as pbar:
                     host_permissions = ['None']
 
                 #Get manifest version
-                manifest_version = data['manifest_version']
-        except:
-            permissions = ['Error']
-            host_permissions = ['Error']
-            manifest_version = 'Error'
+                try:
+                    manifest_version = data['manifest_version']
+                except:
+                    manifest_version = 0
+        else:
+            manifest_version = 0
+            permissions = []
+            host_permissions = []
+            optional_host_permissions = []
+
 
         permission_list = [0 for _ in range(no_perms)]
+        ext_hosts = []
 
         for p in permissions:
             if p in perms:
                 permission_list[perms.index(p)] = 1
             else:
-                if p in hosts:
-                    hosts[p] += 1
-                else:
-                    hosts[p] = 1
+                try:
+                    if p != 'Error' and p != 'None':
+                        ext_hosts.append(p)
+                        if p in hosts:
+                            hosts[p] += 1
+                        else:
+                            hosts[p] = 1
+                except Exception as e:
+                    print(f"Error getting permssion '{p}' from {filename}")
 
         for h in host_permissions:
-            if h != 'None':
+            if h != 'None' and h != 'Error':
+                ext_hosts.append(h)
                 if h in hosts:
                     hosts[h] += 1
                 else:
                     hosts[h] = 1
-        try:
-            for h in optional_host_permissions:
-                if h != 'None':
-                    if h in optional_hosts:
-                        optional_hosts[h] += 1
-                    else:
-                        optional_hosts[h] = 1
-        except:
-            optional_hosts = {}
+        #try:
+        for h in optional_host_permissions:
+            if h != 'None' and h != 'Error':
+                ext_hosts.append(h)
+                if h in hosts:
+                    hosts[h] += 1
+                else:
+                    hosts[h] = 1
+        #except:
+            #optional_hosts = {}
 
         if verbose:
             tqdm.write(str(permission_list))
 
-        insert_list(conn, filename, perms, permission_list, manifest_version)
+        insert_list(conn, filename, perms, permission_list, manifest_version, ext_hosts)
 
         pbar.update(1)
 
 if verbose:
     print(hosts)
-    print(optional_hosts)
 
 #Sort hosts
 hosts = sort_dic(hosts)
-optional_hosts = sort_dic(optional_hosts)
+#optional_hosts = sort_dic(optional_hosts)
 
 sql = """CREATE TABLE IF NOT EXISTS hosts (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,5 +193,5 @@ sql = """INSERT INTO hosts (name, number, optional) VALUES (?,?,?);"""
 for host in hosts:
     insert_data(conn,sql, [host, hosts[host], 0])
 
-for host in optional_hosts:
-     insert_data(conn,sql, [host, optional_hosts[host], 1])
+#for host in optional_hosts:
+#     insert_data(conn,sql, [host, optional_hosts[host], 1])
