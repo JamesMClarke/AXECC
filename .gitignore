@@ -185,3 +185,13 @@ network/
 tables_and_graphs/
 old_files/
 extensions/
+analytics/
+model/
+proxy/
+pdg_generation_files/
+*.sh
+*.sqlite3
+*.ipynb
+post-processor/adblock
+post-processor/vv8-post-processor
+post-processor/*.txt
