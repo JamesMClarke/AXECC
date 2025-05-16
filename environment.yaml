@@ -1,4 +1,4 @@
-name: accessibility_extension_env
+name: AXECC
 channels:
   - defaults
 dependencies:
@@ -13,4 +13,6 @@ dependencies:
   - python=3.11
   - shap
   - tldextract
-prefix: /Users/jc02788/miniconda3/envs/accessibility_extension_env
+prefix: /Users/jc02788/miniconda3/envs/AXECC
+  - pip:
+    - adblockparser
