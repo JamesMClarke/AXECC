@@ -1,6 +1,9 @@
-# Security and Privacy of Accessible Web Extensions
+# AXECC: Benchmarking the Privacy and Accessibility Impact of Browser Extensions
 
-This repo downloads, unpacks, and analyses web extensions looking at their security and privacy.
+This repo downloads, unpacks, and analyses web extensions looking at their security, privacy, and accessibility.
+
+* TODO Add paper link
+* TODO ADD dataset link
 
 ## Installation
 
@@ -74,13 +77,15 @@ First, we need to build VV8's post-processor
 ```bash
 cd post-processor/VisibleV8/post-processor
 make
-cd post-processor
+cd AXECC/post-processor
 cp VisibleV8/post-processor/artifacts/* .
-```
-
-```bash
 # Change directory to post process
+```
+## 7.2 Running post-processor
+We can now run the post-processor
+```bash
 cd post-processor
 # Run post processor
+# Note if running on HPC or simular there needs to be storeage avilable in /tmp
 python3 postProcess.py ../extensions/folder/file.sqlite
 ```
