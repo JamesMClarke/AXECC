@@ -4,7 +4,7 @@ This repo downloads, unpacks, and analyses web extensions looking at their secur
 
 * TODO Add paper link
 * [Dataset](https://osf.io/skw32/?view_only=7e748754b25b40949806f5e877821172)
-* [Supplementary Material](https://github.com/JamesMClarke/AXECC/Supplementary_Material.pdf)
+* [Supplementary Material](https://github.com/JamesMClarke/AXECC/blob/main/Supplementary_Material.pdf)
 
 ## Installation
 
