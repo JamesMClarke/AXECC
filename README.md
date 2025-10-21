@@ -3,7 +3,7 @@
 This repo downloads, unpacks, and analyses web extensions looking at their security, privacy, and accessibility.
 
 * TODO Add paper link
-* [Dataset](https://osf.io/skw32/?view_only=7e748754b25b40949806f5e877821172)
+* [Dataset](https://osf.io/skw32/?view_only=701fecbd0b2f41a6b6566c9b91f7f002)
 * [Supplementary Material](https://github.com/JamesMClarke/AXECC/blob/main/Supplementary_Material.pdf)
 
 ## Installation
